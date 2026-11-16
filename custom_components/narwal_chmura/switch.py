@@ -34,7 +34,7 @@ class WyborPokoju(SwitchEntity, RestoreEntity):
     def __init__(self, rid: int, nazwa: str) -> None:
         self.rid = rid
         self._attr_unique_id = f"narwal_chmura_pokoj_{rid}"
-        self._attr_name = f"Narwal clean room: {nazwa}"
+        self._attr_name = f"Narwal room clean include {nazwa}"
 
     @property
     def is_on(self) -> bool:

@@ -82,7 +82,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
         ("'Utracono połączenie audio'", "'Audio connection lost'"),
     ],
     "custom_components/narwal_chmura/button.py": [
-        ('"Narwal sprzątaj wybrane pokoje"', '"Narwal clean selected rooms"'),
+        ('"Narwal sprzątaj wybrane pokoje"', '"Narwal room clean start"'),
     ],
     "custom_components/narwal_chmura/camera.py": [
         ('_attr_name = "Narwal kamera"', '_attr_name = "Narwal camera"'),
@@ -145,6 +145,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
         ('_attr_name = "Narwal przeszkody"', '_attr_name = "Narwal obstacles"'),
         ('_attr_native_unit_of_measurement = "zdjęć"', '_attr_native_unit_of_measurement = "photos"'),
         ('_attr_name = "Narwal części"', '_attr_name = "Narwal parts"'),
+        ("f\"Narwal {coordinator.data[kod]['nazwa'].lower()}\"", "f\"Narwal part {coordinator.data[kod]['nazwa'].lower()}\""),
     ],
     "custom_components/narwal_chmura/sprzatanie.py": [
         ('"Brak połączenia lokalnego z robotem (integracja narwal_local)"',
@@ -168,20 +169,26 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
     ],
     "custom_components/narwal_chmura/switch.py": [
         ('"Narwal: sprzątaj wybrane pokoje"', '"Narwal clean selected rooms"'),
-        ('f"Narwal sprzątanie: {nazwa}"', 'f"Narwal clean room: {nazwa}"'),
+        ('f"Narwal sprzątanie: {nazwa}"', 'f"Narwal room clean include {nazwa}"'),
     ],
     "custom_components/narwal_chmura/ustawienia.py": [
         ('"Narwal: sprzątaj wybrane pokoje"', '"Narwal clean selected rooms"'),
-        ('("tryb", "Narwal tryb sprzątania", [("vacuum_and_mop", "Odkurzanie i mopowanie"), ("vacuum", "Odkurzanie"),',
-         '("tryb", "Narwal cleaning mode", [("vacuum_and_mop", "Vacuum and mop"), ("vacuum", "Vacuum"),'),
-        ('("mop", "Mopowanie"), ("vacuum_then_mop", "Najpierw odkurzanie, potem mop")],',
-         '("mop", "Mop"), ("vacuum_then_mop", "Vacuum then mop")],'),
-        ('("ssanie", "Narwal siła ssania", [("ai", "Auto / AI"), ("quiet", "Cicha"), ("standard", "Standardowa"),',
-         '("ssanie", "Narwal suction", [("ai", "Smart"), ("quiet", "Quiet"), ("standard", "Normal"),'),
-        ('("woda", "Narwal ilość wody", [("dry", "Lekko sucho"), ("normal", "Standardowo"), ("wet", "Dużo")], "normal"),',
-         '("woda", "Narwal mopping humidity", [("dry", "Slightly dry"), ("normal", "Standard"), ("wet", "High")], "normal"),'),
-        ('("trasa", "Narwal dokładność pokrycia", [("standard", "Standardowa"), ("meticulous", "Intensywna")], "standard"),',
-         '("trasa", "Narwal coverage precision", [("standard", "Standard"), ("meticulous", "Intensive")], "standard"),'),
+        # Names get a "room clean" prefix so their ids never collide with narwal_local.
+        (r"re:(?s)USTAWIENIA = \(\n.*?\n\)\n", """USTAWIENIA = (
+    ("tryb", "Narwal room clean mode", [("vacuum_and_mop", "Vacuum and mop"), ("vacuum", "Vacuum"),
+                                        ("mop", "Mop"), ("vacuum_then_mop", "Vacuum then mop")],
+     "vacuum_and_mop"),
+    ("ssanie", "Narwal room clean suction", [("ai", "Smart"), ("quiet", "Quiet"), ("standard", "Normal"),
+                                             ("strong", "Strong"), ("super_powerful", "Super strong")], "standard"),
+    ("woda", "Narwal room clean mopping humidity", [("dry", "Slightly dry"), ("normal", "Standard"),
+                                                    ("wet", "High")], "normal"),
+    # App "Customize Rooms": Vacuuming / Mopping / Vacuum & Mop Cycle.
+    ("przejazdy", "Narwal room clean cycles", [("1", "1 cycle"), ("2", "2 cycles"), ("3", "3 cycles")], "1"),
+    ("trasa", "Narwal room clean coverage precision", [("standard", "Standard"), ("meticulous", "Intensive")],
+     "standard"),
+)
+"""),
+        (r"re:(?s)STARE_ETYKIETY = \{\n.*?\n\}\n", "STARE_ETYKIETY: dict = {}\n"),
     ],
     "custom_components/narwal_chmura/zwierzak.py": [
         ('"不可以这样": "Nie wolno tak"', '"不可以这样": "Don\'t do that"'),
@@ -223,6 +230,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
          '"No local connection to the robot (narwal_local integration)"'),
     ],
     "custom_components/narwal_mapa/image.py": [
+        ('"Mapa narysowana z danych lokalnej integracji Narwal."', '"Map drawn from the local Narwal integration data."'),
         ('"""Encja obrazu z mapą odkurzacza Narwal (SVG)."""', '"""Image entity with the Narwal map (SVG)."""'),
         ('"""Dodaj encję mapy."""', '"""Add the map entity."""'),
         ('_attr_name = "Mapa odkurzacza"', '_attr_name = "Vacuum map"'),

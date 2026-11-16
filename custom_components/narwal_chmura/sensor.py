@@ -67,7 +67,7 @@ class CzescSensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self.kod = kod
         self._attr_unique_id = f"narwal_chmura_czesc_{kod}"
-        self._attr_name = f"Narwal {coordinator.data[kod]['nazwa'].lower()}"
+        self._attr_name = f"Narwal part {coordinator.data[kod]['nazwa'].lower()}"
 
     @property
     def available(self) -> bool:

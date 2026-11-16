@@ -35,7 +35,7 @@ async def async_setup_platform(
 
 
 class NarwalMapaImage(ImageEntity):
-    """Mapa narysowana z danych lokalnej integracji Narwal."""
+    """Map drawn from the local Narwal integration data."""
 
     _attr_content_type = "image/svg+xml"
     _attr_name = "Vacuum map"
