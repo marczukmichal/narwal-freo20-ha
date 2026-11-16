@@ -11,9 +11,11 @@ the integrations behind it, and the camera add-on.
 > or block them at any time, and using them could put the account at risk. The
 > local integration and the map work without the cloud.
 
-> **Status: tested only on one Freo 20** (Home Assistant OS, amd64, EU region),
-> and **not yet installed from this repository on a clean system.** Expect rough
-> edges. Other Narwal models are untested.
+> **Status: tested only on one Freo 20** (Home Assistant OS, amd64, EU region).
+> Installing from this repository on a clean Home Assistant (2026.11.1) was
+> tested and works, including adding the robot and the Narwal account. Expect
+> rough edges, and read
+> [Known issues](#known-issues). Other Narwal models are untested.
 
 ## What is in it
 
@@ -75,9 +77,26 @@ Only administrators can start the camera, reset parts, edit zones or drive the r
 - Every cleaning start, dock task, part reset and zone or wall change asks for
   confirmation in the window first.
 
-## Known limits
+## Known issues
 
-- Push-to-talk and typed speech are experimental: the robot may not play them.
+**Not working or not confirmed**
+
+- **Typed speech (TTS) and push-to-talk:** did not play on the robot in my
+  tests. The audio path was changed to AAC since then, but that fix is untested.
+
+**Built but not tested on the robot yet**
+
+- **Find pet** and the **pet heatmap**.
+- **No-go zones and virtual walls:** drawing and saving work in the window, but
+  nothing has been written to the robot yet.
+- **Part reset ("Replaced")** in the parts list.
+- **Camera add-on with an empty `device_id`:** it should pick the robot on your
+  account, but I have only run it with a fixed id.
+- **Matter pairing:** described only in general terms; I paired my robot before
+  writing this guide.
+
+**Limits**
+
 - The camera frame rate is whatever the robot sends; there is no app setting for it.
 - Entity ids are fixed in the window except the ones in the card configuration.
   If your entities are named differently, rename them in HA.

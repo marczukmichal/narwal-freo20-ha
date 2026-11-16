@@ -1,8 +1,8 @@
 # Installation guide
 
-This guide was checked on a clean Home Assistant 2026.11.1 (Docker): the
-integrations load, their setup dialogs open, and the card loads in English.
-Connecting a robot and an account was not part of that check.
+This guide was tested on a clean Home Assistant 2026.11.1: the integrations
+install, the robot and the Narwal account can be added, and the card works in
+English.
 
 ## Before you start
 
