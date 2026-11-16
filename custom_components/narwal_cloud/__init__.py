@@ -232,7 +232,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await zwierzak.odtworz(hass, call.data["plik"])
 
     async def swiatlo_kamery(call: ServiceCall):
-        await zwierzak.swiatlo_kamery(hass, call.data["jasnosc"])
+        await zwierzak.swiatlo_kamery(hass, call.data["jasnosc"], call.data.get("dioda", True))
 
     async def zeruj_czesc(call: ServiceCall):
         await _admin(call)
@@ -305,7 +305,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                      schema=vol.Schema({vol.Required("plik"): str}))
         hass.services.async_register(DOMAIN, "szukaj_zwierzaka", szukaj_zwierzaka)
         hass.services.async_register(DOMAIN, "swiatlo_kamery", swiatlo_kamery, schema=vol.Schema({
-            vol.Required("jasnosc"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100))}))
+            vol.Required("jasnosc"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
+            vol.Optional("dioda", default=True): bool}))
         hass.services.async_register(DOMAIN, "zeruj_czesc", zeruj_czesc,
                                      schema=vol.Schema({vol.Required("kod"): vol.All(str, vol.Match(r"^[A-Za-z0-9]{4,32}$"))}))
     if not hass.services.has_service(DOMAIN, "refresh_obstacles"):

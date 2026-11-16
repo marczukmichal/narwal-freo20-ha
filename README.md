@@ -94,8 +94,10 @@ Only administrators can start the camera, reset parts, edit zones or drive the r
   with sent audio are accepted but stay silent; it plays only its stored sounds.
 - **Camera light:** a flashlight button on the camera view and the service
   `narwal_cloud.swiatlo_kamery` (0–100). It is the fill light from the app's
-  hidden lab; it stays on for up to 30 minutes or until you turn it off. The
-  other light that comes on with the camera is switched by the robot itself.
+  hidden lab; it stays on for up to 30 minutes or until you turn it off.
+- **Light on top of the robot:** a second button turns it off (field `dioda`
+  of the same service). The robot takes its own lights back after 30 minutes
+  or when the camera stops.
 - **Obstacle photos while driving by hand:** the photo is loaded straight from
   the robot, also outside a cleaning.
 

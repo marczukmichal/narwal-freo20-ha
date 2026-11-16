@@ -278,7 +278,7 @@ TEXT = {
     "Odblokuj sterowanie": "Unlock driving", "Zablokuj sterowanie": "Lock driving",
     "Odblokuj kłódkę w środku, aby jeździć": "Unlock the padlock in the middle to drive",
     "Dźwięki dla zwierzaka": "Pet sounds", "Zwierzak": "Pet", "Zamknij": "Close",
-    "Światło kamery": "Camera light", "Nie udało się przełączyć światła: ": "Could not switch the light: ",
+    "Zgaś diodę na robocie": "Turn off the light on top of the robot", "Światło kamery": "Camera light", "Nie udało się przełączyć światła: ": "Could not switch the light: ",
     "Pobieram zdjęcie z robota…": "Loading the photo from the robot…",
     "Robot nie udostępnił zdjęcia.": "The robot did not share the photo.",
     "Nie udało się pobrać zdjęcia. Otwórz przeszkodę ponownie, aby spróbować jeszcze raz.": "Could not load the photo. Open the obstacle again to retry.",

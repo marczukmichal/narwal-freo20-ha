@@ -169,23 +169,33 @@ async def szukaj_zwierzaka(hass: HomeAssistant) -> None:
 SWIATLO_MS = 30 * 60 * 1000  # light stays on at most 30 min
 
 
-def _swiatlo_request(jasnosc: int) -> bytes:
-    """PerformChoreography{1 Function{1 Statement{3 CustomAction{9 CameraFillLight{1 brightness}}}}}:
-    the camera's fill light, as the app's laboratory sends it (0 turns it off)."""
+def _swiatlo_request(jasnosc: int, dioda: bool = True) -> bytes:
+    """PerformChoreography{1 Function{1 repeated Statement{3 CustomAction}}}, as the
+    app's laboratory sends it. CustomAction 9 CameraFillLight{1 brightness} is the
+    camera's fill light (0 off); CustomAction 10 LedFreeControl{1 mode 1 regular,
+    2 LedState{1 1 always on, 2 color, 3 brightness}} with brightness 0 turns the
+    light on top of the robot off. Leaving both at their defaults ends the
+    choreography, and the robot goes back to its own lights."""
     from custom_components.narwal_local.protocol.pb import Writer  # noqa: PLC0415
 
-    swiatlo = Writer().message(3, Writer().message(9, Writer().int32(1, jasnosc, force=True)))
-    funkcja = Writer().message(1, swiatlo)
-    if jasnosc:
-        # The robot resets the light when the choreography ends, so hold it with a
-        # Wait {1 milliseconds}; a later request (off) replaces this one.
-        funkcja.message(1, Writer().message(3, Writer().message(1, Writer().varint(1, SWIATLO_MS))))
+    def krok(akcja: Writer) -> Writer:
+        return Writer().message(3, akcja)
+
+    funkcja = Writer().message(1, krok(Writer().message(9, Writer().int32(1, jasnosc, force=True))))
+    if not dioda:
+        stan = Writer().varint(1, 1).varint(2, 0, force=True).int32(3, 0, force=True)
+        funkcja.message(1, krok(Writer().message(10, Writer().varint(1, 1).message(2, stan))))
+    if jasnosc or not dioda:
+        # The robot resets its lights when the choreography ends, so hold them with a
+        # Wait {1 milliseconds}; a later request replaces this one.
+        funkcja.message(1, krok(Writer().message(1, Writer().varint(1, SWIATLO_MS))))
     return bytes(Writer().message(1, funkcja))
 
 
-async def swiatlo_kamery(hass: HomeAssistant, jasnosc: int) -> None:
+async def swiatlo_kamery(hass: HomeAssistant, jasnosc: int, dioda: bool = True) -> None:
     jasnosc = max(0, min(100, int(jasnosc)))
-    res = _wynik(await _call(hass, "/telecontrol/perform_choreography", _swiatlo_request(jasnosc)))
+    res = _wynik(await _call(hass, "/telecontrol/perform_choreography", _swiatlo_request(jasnosc, dioda)))
     if res != 1:
         raise HomeAssistantError(f"The robot did not change the light (code {res})")
+
 
