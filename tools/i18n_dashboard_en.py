@@ -259,6 +259,8 @@ TEXT = {
     "Wysyłanie mowy do robota — odtwarzanie wymaga potwierdzenia odsłuchem.":
         "Sending speech to the robot. Confirm playback by listening.",
     "Łączenie dźwięku…": "Connecting audio…",
+    "' · zdjęcie po sprzątaniu'": "' · photo after cleaning'",
+    "', rozpoznana teraz'": "', seen now'",
     # ---- room names from the cloud (keys are the robot’s English names)
     "'Kuchnia'": "'Kitchen'", "'Salon'": "'Living room'", "'Sypialnia'": "'Bedroom'",
     "'Korytarz'": "'Corridor'", "'Łazienka'": "'Bathroom'",

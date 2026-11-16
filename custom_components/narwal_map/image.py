@@ -19,6 +19,7 @@ import json
 
 from .mapa_svg import project_pins, render_svg
 from .local_map import local_snapshot
+from .pinezki import map_pins
 
 _LOGGER = logging.getLogger(__name__)
 SCAN = timedelta(seconds=2)
@@ -147,12 +148,8 @@ class NarwalMapaImage(ImageEntity):
 
     def _snapshot_with_map(self, m, robot, trail, metadata, trail_signature):
         """Shared signature and photo markers for either map provider."""
-        pins = []
-        st = self.hass.states.get("sensor.narwal_przeszkody")
-        for o in (st.attributes.get("przeszkody") or []) if st else []:
-            if isinstance(o.get("x"), (int, float)) and isinstance(o.get("y"), (int, float)):
-                pins.append({"id": o["id"], "x": o["x"], "y": o["y"],
-                             "nazwa": o.get("nazwa"), "etykieta": o.get("etykieta")})
+        pins = map_pins(self.hass.states.get("sensor.narwal_przeszkody"),
+                        getattr(m, "clean_started", None), getattr(m, "live_obstacles", None))
         signature = (
             tuple((p["id"], p["x"], p["y"]) for p in pins),
             zlib.crc32(m.compressed_map),
@@ -233,10 +230,7 @@ class NarwalMapaImage(ImageEntity):
         """Without a fresh map: place pins with the remembered geometry."""
         if not self._geo or self._svg is None:
             return
-        st = self.hass.states.get("sensor.narwal_przeszkody")
-        pins = [{"id": o["id"], "x": o["x"], "y": o["y"], "nazwa": o.get("nazwa"), "etykieta": o.get("etykieta")}
-                for o in ((st.attributes.get("przeszkody") or []) if st else [])
-                if isinstance(o.get("x"), (int, float)) and isinstance(o.get("y"), (int, float))]
+        pins = map_pins(self.hass.states.get("sensor.narwal_przeszkody"), None, None)
         sig = tuple((p["id"], p["x"], p["y"]) for p in pins)
         if sig == self._pin_sig and (self._attr_extra_state_attributes or {}).get("map_source") == "cache":
             return

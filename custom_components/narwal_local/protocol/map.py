@@ -623,22 +623,62 @@ class DisplayMap:
 
     robot (field 1) and dock (field 5) are poses in the same border frame as the
     StaticMapPayload's dock and objects. The push also carries partial map
-    updates and the cleaned track, which are not decoded here.
+    updates and the cleaned track; of those only the obstacles are decoded.
     """
 
     robot: Pose | None = None
     dock: Pose | None = None
     timestamp_ms: int = 0  # field 10
+    # Obstacles the camera recognises during the current job. A full map
+    # (field 8 entireMapData, 8 visionData) replaces the set; an incremental
+    # one (field 7: 5 addVisionObs, 6 deleteVisionObs) adds and removes.
+    obstacles_all: tuple[Obstacle, ...] | None = None
+    obstacles_add: tuple[Obstacle, ...] = ()
+    obstacles_delete: tuple[int, ...] = ()
+    fields: tuple[str, ...] = ()  # which fields the push carried, for logging
+
+
+def _incremental(buf: bytes, add: list, delete: list, seen: list) -> None:
+    for f in parse(buf):
+        seen.append(f"7.{f.num}")
+        if f.num == 5 and f.wtype != WIRE_VARINT:
+            add.append(_obstacle(f.data))
+        elif f.num == 6 and f.wtype != WIRE_VARINT:
+            delete.append(_obstacle(f.data).id)
+
+
+def _entire_vision(buf: bytes, seen: list) -> tuple[Obstacle, ...] | None:
+    for f in parse(buf):
+        seen.append(f"8.{f.num}")
+        if f.num == 8 and f.wtype != WIRE_VARINT:
+            mi = MapInfo()
+            _vision_data(f.data, mi)
+            return tuple(mi.obstacles)
+    return None
 
 
 def decode_display_map(payload: bytes) -> DisplayMap:
-    robot = dock = None
+    robot = dock = everything = None
     ts = 0
+    add: list[Obstacle] = []
+    delete: list[int] = []
+    seen: list[str] = []
     for f in parse(payload):
+        seen.append(str(f.num))
         if f.num == 1 and f.wtype != WIRE_VARINT:
             robot = _pose(f.data)
         elif f.num == 5 and f.wtype != WIRE_VARINT:
             dock = _pose(f.data)
         elif f.num == 10 and f.wtype == WIRE_VARINT:
             ts = f.int
-    return DisplayMap(robot, dock, ts)
+        elif f.num == 7 and f.wtype != WIRE_VARINT:
+            try:
+                _incremental(f.data, add, delete, seen)
+            except ValueError:
+                seen.append("7.bad")
+        elif f.num == 8 and f.wtype != WIRE_VARINT:
+            try:
+                everything = _entire_vision(f.data, seen)
+            except ValueError:
+                seen.append("8.bad")
+    return DisplayMap(robot, dock, ts, everything, tuple(add), tuple(delete), tuple(seen))

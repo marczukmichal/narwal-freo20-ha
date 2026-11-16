@@ -31,6 +31,7 @@ from .const import (
     REPORT_SECONDS,
 )
 from .map_objects import ObjectNames, obstacle_list
+from .protocol.map import DisplayMap, Obstacle
 from .protocol import (
     TOPIC_CLEAN_REPORT,
     TOPIC_TIME_LINE,
@@ -115,6 +116,10 @@ class LiveState:
     path: list[tuple[float, float]] = field(default_factory=list)
     version: int = 0
     received_at: float = 0.0  # monotonic time of the latest valid live pose
+    # Obstacles recognised during the current job, by id. The saved map only
+    # gets them after the job, so this is the only live source.
+    obstacles: dict[int, Obstacle] = field(default_factory=dict)
+    clean_started: float | None = None  # UTC epoch seconds of the job start
 
 
 class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
@@ -145,6 +150,7 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         # select (the robot keeps no "current mode" of its own).
         self.clean_mode = CleanMode.SWEEP_MOP
         self._live_listeners: list[Callable[[], None]] = []
+        self._display_fields: frozenset[str] = frozenset()
         self._consumables_due = dt_util.utcnow()
         self._map_due = dt_util.utcnow()
         self._reconnecting = False
@@ -396,10 +402,15 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
 
     @callback
     def _handle_display_map(self, payload: bytes) -> None:
-        robot = decode_display_map(payload).robot
+        display = decode_display_map(payload)
+        live = self.live
+        if self._obstacles_from(display):
+            live.version += 1
+            for listener in list(self._live_listeners):
+                listener()
+        robot = display.robot
         if robot is None:
             return
-        live = self.live
         live.received_at = time.monotonic()
         point = (robot.x, robot.y)
         if not live.path or math.dist(live.path[-1], point) >= PATH_MIN_STEP:
@@ -412,6 +423,25 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         live.version += 1
         for listener in list(self._live_listeners):
             listener()
+
+    def _obstacles_from(self, display: DisplayMap) -> bool:
+        """Apply the obstacles in a display_map push; True when they changed."""
+        fields = frozenset(display.fields)
+        if fields - self._display_fields:
+            self._display_fields |= fields
+            _LOGGER.debug("display_map fields: %s", sorted(self._display_fields))
+        if display.obstacles_all is None and not display.obstacles_add and not display.obstacles_delete:
+            return False
+        obstacles = self.live.obstacles
+        before = dict(obstacles)
+        if display.obstacles_all is not None:
+            obstacles.clear()
+            obstacles.update((o.id, o) for o in display.obstacles_all)
+        for oid in display.obstacles_delete:
+            obstacles.pop(oid, None)
+        for o in display.obstacles_add:
+            obstacles[o.id] = o
+        return obstacles != before
 
     @callback
     def _add_timeline(self, events: list[TimelineEvent]) -> None:
@@ -433,6 +463,8 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         """Start a fresh path when a cleaning job begins."""
         if new.in_clean_task and (old is None or not old.in_clean_task):
             self.live.path.clear()
+            self.live.obstacles.clear()
+            self.live.clean_started = time.time()
             self.live.version += 1
             self._map_due = dt_util.utcnow()
 

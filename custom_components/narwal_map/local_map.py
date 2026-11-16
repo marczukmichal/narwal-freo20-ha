@@ -46,10 +46,14 @@ def local_snapshot(coordinator, *, now: float | None = None):
                    for w in getattr(mi, "virtual_walls", ())],
         },
     )
+    live = coordinator.live
+    # Obstacles seen during the current job, border frame like the cloud pins.
+    m.live_obstacles = [(o.id, int(o.label), o.x, o.y)
+                        for o in getattr(live, "obstacles", {}).values()]
+    m.clean_started = getattr(live, "clean_started", None)
     connected = bool(getattr(coordinator, "last_update_success", False))
     activity = str(data.status.activity)
     docked = activity == "docked" if connected else None
-    live = coordinator.live
     pose = live.robot
     received = getattr(live, "received_at", 0.0)
     age = max(0.0, (time.monotonic() if now is None else now) - received) if received else None
