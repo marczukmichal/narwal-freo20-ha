@@ -303,11 +303,11 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
     "custom_components/narwal_mapa/manifest.json": [
         ('"name": "Narwal — ładna mapa"', '"name": "Narwal map (app style)"'),
         ('"after_dependencies": ["narwal", "narwal_local"]', '"after_dependencies": ["narwal_local"]'),
-        ('re:"https://github\\.com/[^/"]+/homeassistant"', '"https://github.com/REPLACE_ME/narwal-freo20-ha"'),
+        ('re:"https://github\\.com/[^/"]+/homeassistant"', '"https://github.com/marczukmichal/narwal-freo20-ha"'),
     ],
     "custom_components/narwal_chmura/manifest.json": [
         ('"name": "Narwal Chmura"', '"name": "Narwal Cloud Companion"'),
-        ('re:"https://github\\.com/[^/"]+/homeassistant"', '"https://github.com/REPLACE_ME/narwal-freo20-ha"'),
+        ('re:"https://github\\.com/[^/"]+/homeassistant"', '"https://github.com/marczukmichal/narwal-freo20-ha"'),
     ],
     # ------------------------------------------------------------- narwal_local
     "custom_components/narwal_local/sensor.py": [

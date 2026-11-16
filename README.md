@@ -95,4 +95,4 @@ English text from `tools/i18n_en.py` and `tools/i18n_dashboard_en.py`.
 ## Licence
 
 `narwal_local` keeps its MIT licence (see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
-The licence for the rest is still to be decided.
+Everything else in this repository is MIT licensed, see [LICENSE](LICENSE).

@@ -4,7 +4,7 @@
   "codeowners": [],
   "config_flow": true,
   "after_dependencies": ["narwal_local"],
-  "documentation": "https://github.com/REPLACE_ME/narwal-freo20-ha",
+  "documentation": "https://github.com/marczukmichal/narwal-freo20-ha",
   "iot_class": "cloud_polling",
   "requirements": [],
   "version": "0.1.0"
