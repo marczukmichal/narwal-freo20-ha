@@ -26,6 +26,7 @@ from .const import (
     MAP_INTERVAL,
     TIMELINE_MAX,
     PATH_MAX_POINTS,
+    TRACK_MAX_POINTS,
     PATH_MIN_STEP,
     POLL_INTERVAL,
     RECONNECT_DELAYS,
@@ -126,6 +127,7 @@ class LiveState:
     # its first index; NaN pairs are breaks. Survives reconnects, and with
     # the store also a Home Assistant restart in the middle of a job.
     track: list[tuple[float, float]] = field(default_factory=list)
+    track_info: dict[int, tuple[int, int, int, int]] = field(default_factory=dict)
     zone_id: int = 0  # the room the robot reports cleaning (display_map 4)
 
 
@@ -162,6 +164,7 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         self._map_due = dt_util.utcnow()
         self._reconnecting = False
         self._job: float | None = None  # robot time of the job start (timeline)
+        self._timeline_job: float | None = None
         self._store: Store = Store(hass, 1, f"{DOMAIN}.track.{entry.entry_id}")
         self._restore: dict | None = None
         self._save_asked = 0.0
@@ -231,15 +234,20 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
             ) from err
         if previous is None:
             self._restore_track(status, timeline)
-        if status.in_clean_task and map_info is not None and map_info.trajectory:
-            # the map holds the whole track of the job: the app draws this
-            # after it reconnects, so a restart loses nothing
-            if len(map_info.trajectory) >= len(self.live.track):
-                self.live.track[:] = map_info.trajectory
-                self.live.version += 1
         self._track_clean_start(previous.status if previous else None, status)
-        if status.in_clean_task and (job := job_start(timeline)) is not None:
-            self._job = job
+        if status.in_clean_task and (job := self._timeline_job) is not None:
+            if self._job is not None and job > self._job + 5:
+                # A different job started while HA was disconnected.
+                self._reset_track(job)
+            elif self._job is None or abs(job - self._job) < 300:
+                self._job = job
+                self.live.clean_started = job
+        if status.in_clean_task and map_info is not None and map_info.trajectory:
+            infos_changed = any(self.live.track_info.get(i[0]) != i for i in map_info.trajectory_infos)
+            self.live.track_info.update((i[0], i) for i in map_info.trajectory_infos)
+            if stitch(self.live.track, 0, map_info.trajectory, TRACK_MAX_POINTS) or infos_changed:
+                self._live_changed()
+                self._save_track(force=True)
         data = NarwalData(
             status=status,
             working=previous.working if previous else None,
@@ -279,6 +287,9 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         except (NarwalCommandError, NarwalTimeoutError) as err:
             _LOGGER.debug("Reading the timeline failed: %s", err)
             return previous
+        if events:
+            # Identify the job before truncating events for state attributes.
+            self._timeline_job = job_start(events)
         return tuple(events[-TIMELINE_MAX:]) if events else previous
 
     async def _async_get_language(self, previous: Language | int | None) -> Language | int | None:
@@ -429,13 +440,13 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
     def _handle_display_map(self, payload: bytes) -> None:
         display = decode_display_map(payload)
         live = self.live
-        if self._obstacles_from(display):
-            live.version += 1
-            for listener in list(self._live_listeners):
-                listener()
-        changed = False
+        changed = self._obstacles_from(display)
         if display.trajectory and self.data.status.in_clean_task:
-            changed = stitch(live.track, display.trajectory_first, display.trajectory, PATH_MAX_POINTS)
+            changed = stitch(live.track, display.trajectory_first, display.trajectory, TRACK_MAX_POINTS) or changed
+        for info in display.trajectory_infos:
+            if live.track_info.get(info[0]) != info:
+                live.track_info[info[0]] = info
+                changed = True
         if display.zone_id and display.zone_id != live.zone_id:
             live.zone_id = display.zone_id
             changed = True
@@ -475,17 +486,21 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
             "saved": time.time(),
             "job": self._job,
             "clean_started": live.clean_started,
+            "map_id": self.data.status.map_id if self.data else None,
+            "zone_id": live.zone_id,
+            "obstacles": [[o.id, int(o.label), o.x, o.y] for o in live.obstacles.values()],
             "path": pack_points(live.path),
             "track": pack_points(live.track),
+            "track_info": list(live.track_info.values()),
         }
 
     @callback
-    def _save_track(self) -> None:
+    def _save_track(self, *, force: bool = False) -> None:
         """Written at most every 20 s while the robot moves."""
         # async_delay_save postpones on every call; pushes come each second,
         # so ask at most every 20 s with a short delay
         now = time.monotonic()
-        if self.data is not None and self.data.status.in_clean_task and now - self._save_asked >= 20:
+        if force or self.data is not None and self.data.status.in_clean_task and now - self._save_asked >= 20:
             self._save_asked = now
             self._store.async_delay_save(self._track_data, 1)
 
@@ -494,7 +509,7 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         """First status after Home Assistant (or this entry) started: if the
         robot is still in the job we saved, take its path back."""
         saved, self._restore = self._restore, None
-        self._job = job_start(timeline) if status.in_clean_task else None
+        self._job = (self._timeline_job or job_start(timeline)) if status.in_clean_task else None
         if not status.in_clean_task:
             return
         live = self.live
@@ -504,7 +519,14 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
                 same = abs(float(saved["job"]) - self._job) < 5
             else:  # no timeline yet: trust a recent save
                 same = time.time() - float(saved.get("saved") or 0) < 600
+        if same and saved.get("map_id") not in (None, status.map_id):
+            same = False
         if same:
+            self._job = saved.get("job") or self._job
+            live.zone_id = saved.get("zone_id", 0)
+            live.track_info = {i[0]: tuple(i) for i in saved.get("track_info", [])}
+            for oid, label, x, y in saved.get("obstacles", []):
+                live.obstacles[oid] = Obstacle(id=oid, label=label, x=x, y=y)
             live.path[:0] = unpack_points(saved.get("path"))
             if not live.track:
                 live.track.extend(unpack_points(saved.get("track")))
@@ -554,14 +576,21 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         after a start is handled by _restore_track instead: the job may have
         been running for a while."""
         if new.in_clean_task and old is not None and not old.in_clean_task:
-            self.live.path.clear()
-            self.live.track.clear()
-            self.live.obstacles.clear()
-            self.live.zone_id = 0
-            self.live.clean_started = time.time()
-            self._job = self.live.clean_started
-            self.live.version += 1
-            self._map_due = dt_util.utcnow()
+            self._reset_track(time.time())
+        elif old is not None and old.in_clean_task and not new.in_clean_task:
+            self._save_track(force=True)
+
+    @callback
+    def _reset_track(self, job: float) -> None:
+        self.live.path.clear()
+        self.live.track.clear()
+        self.live.track_info.clear()
+        self.live.obstacles.clear()
+        self.live.zone_id = 0
+        self.live.clean_started = self._job = job
+        self._live_changed()
+        self._map_due = dt_util.utcnow()
+        self._save_track(force=True)
 
     @callback
     def async_add_live_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
@@ -595,6 +624,8 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
                     _LOGGER.debug("Reconnect to %s failed: %s", self.robot.host, err)
                     continue
                 _LOGGER.debug("Reconnected to %s", self.robot.host)
+                self._map_due = dt_util.utcnow()
+                await self.async_request_refresh()
                 return
             self.async_set_update_error(UpdateFailed("connection lost"))
         finally:

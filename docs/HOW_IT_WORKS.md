@@ -9,7 +9,7 @@
 | Feature | Source | Runs where |
 |---|---|---|
 | Obstacle photos with label and time | Narwal cloud, decrypted locally | Small custom HA integration |
-| Live camera and robot audio (push-to-talk experimental) | Agora RTC session, credentials from the Narwal cloud | HA add-on (Agora Python server SDK) |
+| Live camera, robot audio, push-to-talk and TTS | Agora RTC session, credentials from the Narwal cloud | HA add-on (Agora Python server SDK) |
 
 The custom integration logs in to the Narwal cloud once with the account's email and password, the same way the app does. It stores only the access and refresh tokens in the config entry, and refreshes them when they expire. The password is not stored.
 
@@ -76,8 +76,8 @@ A local add-on (Docker, `agora-python-server-sdk`) joins that channel as a secon
 
 * Media encryption is on: `enable_encryption` with mode 7 (AES-128-GCM2), `securityKey` as the key, and the base64-decoded `salt` as the KDF salt.
 * Video arrives as YUV420 frames. The add-on converts them to JPEG and serves an MJPEG stream on the internal add-on network only (no ports exposed). HA proxies it as a normal camera entity, so only logged-in users can see it.
-* Robot audio: the robot sends AAC with RTP payload type 69 (`che.audio.custom_payload_type: 69`), the same as the Android app's player.
-* Push-to-talk (experimental, not confirmed to play on the robot): the robot did not play Opus, so the add-on encodes the browser's microphone to AAC-LC and publishes it only while the talk button is held.
+* Robot audio: the Agora SDK decodes the robot's stream. With the add-on option `aac_audio` on, the add-on also sets `che.audio.custom_payload_type: 69`, as the Android app's player does for models that report AAC.
+* Push-to-talk and TTS (working on the Freo 20): the app turns on AAC only when the robot reports `agoraVideoStreamingType = AAC`; the Freo 20 does not, so the app uses Agora's default codec. The add-on does the same: it publishes plain 16 kHz mono PCM and paces it in 20 ms frames, and sets payload type 69 only when the add-on option `aac_audio` is on. The browser sends the microphone or the TTS audio to the add-on as PCM.
 * The frame rate is set by the robot; the app has no FPS or quality setting.
 
 ### Lifecycle (answer to the service-call question)

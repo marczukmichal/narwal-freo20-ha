@@ -77,7 +77,8 @@ class TalkAudio:
         frame.time_base = Fraction(1, self.SAMPLE_RATE)
         self.samples += frame.samples
         self.pending.extend(self.adts(bytes(packet)) for packet in self.encoder.encode(frame))
-        if len(self.pending) > 6:
+        # Paced in real time by tick(); up to ~3 s may wait (TTS is sent ahead).
+        if len(self.pending) > 48:
             raise ValueError('Audio connection too slow, microphone muted')
         return 0
 
@@ -91,6 +92,64 @@ class TalkAudio:
                                     number_of_channels=1, speech=1)
         result = self.conn.push_audio_encoded_data(self.pending.popleft(), info)
         # Do not burst old packets after a scheduling pause.
+        now = self.clock()
+        deadline = self.next_at + self.PERIOD
+        self.next_at = deadline if deadline > now else now + self.PERIOD
+        return result
+
+
+class PcmTalk:
+    """Speech as 16 kHz mono PCM; the SDK encodes it with its default codec,
+    as the Narwal app does for robots without agoraVideoStreamingType=AAC.
+    Pushed in 20 ms chunks paced in real time; up to ~3 s may wait."""
+    SAMPLE_RATE = 16000
+    CHUNK = 640  # 20 ms
+    PERIOD = 0.02
+    MAX_PENDING = 150
+
+    def __init__(self, conn, clock=time.monotonic):
+        self.conn, self.clock = conn, clock
+        self.pending = deque()
+        self.published = False
+        self.active = False
+        self.next_at = 0.0
+
+    def start(self):
+        self.pending.clear()
+        self.active = True
+        self.next_at = self.clock()
+        if self.published:
+            return 0
+        code = self.conn.publish_audio()
+        self.published = code == 0
+        return code
+
+    def stop(self):
+        # Never play buffered speech after release.
+        self.active = False
+        self.pending.clear()
+        return 0
+
+    def close(self):
+        self.stop()
+        if not self.published:
+            return 0
+        self.published = False
+        return self.conn.unpublish_audio()
+
+    def push(self, pcm):
+        if not self.active:
+            raise ValueError('Mikrofon wyciszony')
+        for i in range(0, len(pcm), self.CHUNK):
+            self.pending.append(bytes(pcm[i:i + self.CHUNK]))
+        if len(self.pending) > self.MAX_PENDING:
+            raise ValueError('Audio connection too slow, microphone muted')
+        return 0
+
+    def tick(self):
+        if not self.pending or self.clock() < self.next_at:
+            return 0
+        result = self.conn.push_audio_pcm_data(bytearray(self.pending.popleft()), self.SAMPLE_RATE, 1)
         now = self.clock()
         deadline = self.next_at + self.PERIOD
         self.next_at = deadline if deadline > now else now + self.PERIOD

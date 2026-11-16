@@ -11,7 +11,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
     vol.Required('session_id'): vol.All(str, vol.Length(min=1, max=64)),
     vol.Optional('talk_id'): vol.All(str, vol.Length(max=64)),
     vol.Optional('seq'): vol.All(int, vol.Range(min=0)),
-    vol.Optional('pcm'): vol.All(str, vol.Length(max=4300)),
+    vol.Optional('pcm'): vol.All(str, vol.Length(max=21400)),
 })
 @websocket_api.async_response
 async def ws_audio(hass, connection, msg):

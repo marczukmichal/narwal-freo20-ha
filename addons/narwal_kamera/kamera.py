@@ -18,7 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from sessions import ViewerSessions
 from audio_bridge import AudioBridge
-from talk_audio import TalkAudio
+from talk_audio import PcmTalk, TalkAudio
 from video_bridge import FrameSlot
 from video_encode import JpegEncoder
 from agora.rtc.audio_frame_observer import IAudioFrameObserver
@@ -32,6 +32,8 @@ from agora.rtc.local_user_observer import IRTCLocalUserObserver
 from agora.rtc.video_frame_observer import IVideoFrameObserver
 
 OPTS = json.load(open("/data/options.json")) if os.path.exists("/data/options.json") else {}
+# Only for robots reporting agoraVideoStreamingType=AAC (the Freo 20 does not).
+AAC = bool(OPTS.get("aac_audio", False))
 DEVICE_ID = OPTS.get("device_id", "")  # optional: empty = the robot picked by narwal_cloud
 DEVICE = {"device_id": DEVICE_ID, "product_id": ""}
 viewers = ViewerSessions()  # explicit Start + renewable 35-second lease
@@ -184,18 +186,22 @@ def connect():
                       client_role_type=ClientRoleType.CLIENT_ROLE_BROADCASTER,
                       channel_profile=ChannelProfileType.CHANNEL_PROFILE_LIVE_BROADCASTING),
         RtcConnectionPublishConfig(is_publish_audio=True, is_publish_video=False,
-                                   audio_publish_type=AudioPublishType.AUDIO_PUBLISH_TYPE_ENCODED_PCM,
+                                   audio_publish_type=(AudioPublishType.AUDIO_PUBLISH_TYPE_ENCODED_PCM if AAC
+                                                       else getattr(AudioPublishType, "AUDIO_PUBLISH_TYPE_PCM", 1)),
                                    audio_scenario=AudioScenarioType.AUDIO_SCENARIO_DEFAULT))
-    # Preparing an encoded track does not publish it. Only talk_start publishes.
-    # Narwal Android SWVideoPlayer uses payload type 69 for AAC camera audio.
-    audio_param_code = conn.get_agora_parameter().set_parameters('{"che.audio.custom_payload_type":69}')
-    audio.bind(conn, TalkAudio(conn))
+    # Narwal app (SWVideoPlayer): payload type 69 (AAC) only when the robot's
+    # feature list says agoraVideoStreamingType=AAC. The Freo 20 reports the
+    # default, so the app publishes its microphone with Agora's own codec;
+    # forcing AAC 69 made the robot drop our speech. Preparing a track does
+    # not publish it; only talk_start publishes.
+    audio_param_code = conn.get_agora_parameter().set_parameters('{"che.audio.custom_payload_type":69}') if AAC else None
+    audio.bind(conn, TalkAudio(conn) if AAC else PcmTalk(conn))
     audio_frame_code = conn.get_local_user().set_playback_audio_frame_before_mixing_parameters(1, 16000)
     observer_code = conn.register_audio_frame_observer(AudioFrames(), 0, None)
     audio_track_observer = AudioTrackState()
     local_observer_code = conn.register_local_user_observer(audio_track_observer)
     state["audio_track_observer"] = audio_track_observer
-    log("audio observer setup", "payload_type_69", audio_param_code, "talk_codec", "AAC-LC encoded track",
+    log("audio observer setup", "payload_type_69", audio_param_code, "talk_codec", "AAC-LC encoded track" if AAC else "PCM, SDK codec",
         "frame_params", audio_frame_code, "observer", observer_code,
         "track_observer", local_observer_code)
     conn.register_observer(Conn())
@@ -295,7 +301,7 @@ class Handler(BaseHTTPRequestHandler):
             action = "unknown"
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if not 0 < length <= 6000:
+                if not 0 < length <= 24000:
                     raise ValueError("Invalid body")
                 data = json.loads(self.rfile.read(length))
                 action = data.get("action", "unknown")

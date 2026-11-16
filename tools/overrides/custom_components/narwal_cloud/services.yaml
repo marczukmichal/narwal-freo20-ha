@@ -47,6 +47,18 @@ odtworz_dzwiek:
       example: /userdata/usr/data/voice/voiceO27.mp3
       selector:
         text:
+swiatlo_kamery:
+  name: Camera light
+  description: Turns the robot's camera fill light on or off (0 turns it off). It stays on for up to 30 minutes.
+  fields:
+    jasnosc:
+      required: true
+      example: 100
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
 zeruj_czesc:
   name: Part replaced
   description: Resets the part's hour counter in the Narwal cloud, like the Reset button in the app.

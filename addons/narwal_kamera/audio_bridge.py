@@ -148,7 +148,7 @@ class AudioBridge:
                     raise ValueError('The microphone is already in use')
                 self._check(self.sender.start() if self.sender else self.conn.publish_audio(), "publish_audio")
                 token = uuid.uuid4().hex
-                self.talker = {'viewer': key, 'token': token, 'until': now+.7, 'seq': -1}
+                self.talker = {'viewer': key, 'token': token, 'until': now+1.5, 'seq': -1}
                 self.logger("talk started", "publish_audio ok")
                 return {'talk_id': token}
             elif action in ('talk_pcm', 'talk_stop'):
@@ -159,16 +159,21 @@ class AudioBridge:
                 else:
                     seq = data.get('seq')
                     pcm = base64.b64decode(data.get('pcm', ''), validate=True)
-                    if not isinstance(seq, int) or seq <= self.talker['seq'] or len(pcm) != 3200:
+                    # One message may carry up to 500 ms (5 x 100 ms): fewer round trips
+                    # through HA, so latency spikes no longer cut speech off.
+                    if (not isinstance(seq, int) or seq <= self.talker['seq'] or not pcm
+                            or len(pcm) % 3200 or len(pcm) > 16000):
                         raise ValueError('Invalid audio frame')
                     try:
-                        code = self.sender.push(pcm) if self.sender else self.conn.push_audio_pcm_data(bytearray(pcm), 16000, 1)
-                        self._check(code, "push_audio")
+                        for i in range(0, len(pcm), 3200):
+                            part = pcm[i:i + 3200]
+                            code = self.sender.push(part) if self.sender else self.conn.push_audio_pcm_data(bytearray(part), 16000, 1)
+                            self._check(code, "push_audio")
                     except Exception:
                         self._stop_talk()
                         raise
                     self.talker['seq'] = seq
-                    self.talker['until'] = now+.7
+                    self.talker['until'] = now + 1.5 + len(pcm) / 32000
                     signal = any(pcm[i] or pcm[i + 1] for i in range(0, len(pcm), 2))
                     with self.frames_lock:
                         self.stats["talk_frames"] += 1

@@ -31,6 +31,7 @@ export class NarwalCameraAudio {
   this.listen.textContent=this.listening?'Mute listening':'Listen';this.listen.setAttribute('aria-pressed',String(!!this.listening));
   this.talk.textContent=this.talkId?'Talking, release to mute':this.held?'Starting the microphone…':'Hold to talk';this.talk.setAttribute('aria-pressed',String(!!this.held));
  }
+ b64(buffer){const bytes=new Uint8Array(buffer);let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);}
  message(text){if(this.note)this.note.textContent=text;}
  async context(){const ctx=new AudioContext();await ctx.resume();return ctx;}
  async startListen(){
@@ -114,29 +115,35 @@ export class NarwalCameraAudio {
    this.talkId=talk.talk_id;this.talkSession=session;this.seq=0;this.pcmQueue=[];this.sending=false;this.refresh();
    this.message('Sending speech to the robot. Confirm playback by listening.');
    const samples=rendered.getChannelData(0),start=performance.now();
-   // Include a short silent tail so the AAC encoder emits the final syllable.
-   for(let offset=0;offset<samples.length+3200&&active();offset+=1600){
-    const delay=start+offset/16-performance.now();
+   // The add-on paces playback itself, so send 500 ms per message and stay up to 1 s ahead:
+   // a slow round trip through HA no longer cuts the speech. A silent tail lets the AAC encoder finish.
+   const total=samples.length+3200;let offset=0;
+   while(offset<total&&active()){
+    const delay=start+offset/16-1000-performance.now();
     if(delay>0)await new Promise(resolve=>setTimeout(resolve,delay));
     if(!active())return;
-    if(performance.now()-(start+offset/16)>300)throw new Error('Connection too slow, talking stopped');
-    const pcm=new ArrayBuffer(3200),view=new DataView(pcm);
-    for(let i=0;i<1600;i++)view.setInt16(i*2,Math.round(Math.max(-1,Math.min(1,samples[offset+i]||0))*32767),true);
-    await this.sendPCM(pcm,generation);
+    const n=Math.min(8000,Math.ceil((total-offset)/1600)*1600),pcm=new ArrayBuffer(n*2),view=new DataView(pcm);
+    for(let i=0;i<n;i++)view.setInt16(i*2,Math.round(Math.max(-1,Math.min(1,samples[offset+i]||0))*32767),true);
+    await this.command('talk_pcm',{talk_id:this.talkId,seq:this.seq++,pcm:this.b64(pcm)},session);
+    offset+=n;
    }
-   if(active()){await new Promise(resolve=>setTimeout(resolve,200));if(active()){this.stopTalk();this.message('Speech sent. Check that the robot played it.');}}
+   // Keep the talk open until the robot has played what is queued.
+   const left=start+total/16-performance.now()+300;
+   if(active()&&left>0)await new Promise(resolve=>setTimeout(resolve,left));
+   if(active()){this.stopTalk();this.message('Speech sent. Check that the robot played it.');}
   }catch(e){if(active()){this.stopTalk();this.message(e.message||'Could not send speech to the robot');}}
  }
  async sendPCM(buffer,generation){
   if(!this.held||!this.talkId||generation!==this.micGeneration)return;
   this.pcmQueue??=[];this.pcmQueue.push({buffer,at:performance.now()});
-  if(this.pcmQueue.length>3){this.stopTalk();this.message('Connection too slow, microphone muted.');return;}
+  if(this.pcmQueue.length>20){this.stopTalk();this.message('Connection too slow, microphone muted.');return;}
   if(this.sending)return;
   this.sending=true;
   try{while(this.pcmQueue.length&&this.held&&generation===this.micGeneration){
-   const next=this.pcmQueue.shift();if(performance.now()-next.at>300)throw new Error('Connection too slow, microphone muted.');
-   const bytes=new Uint8Array(next.buffer),pcm=btoa(String.fromCharCode(...bytes));
-   await this.command('talk_pcm',{talk_id:this.talkId,seq:this.seq++,pcm},this.talkSession);
+   // Whatever piled up during the last round trip goes in one message (max 5 x 100 ms).
+   const batch=this.pcmQueue.splice(0,5);if(performance.now()-batch[0].at>2000)throw new Error('Connection too slow, microphone muted.');
+   const all=new Uint8Array(batch.length*3200);batch.forEach((f,i)=>all.set(new Uint8Array(f.buffer),i*3200));
+   await this.command('talk_pcm',{talk_id:this.talkId,seq:this.seq++,pcm:this.b64(all.buffer)},this.talkSession);
   }}
   catch(e){if(generation===this.micGeneration){this.stopTalk();this.message(e.message||'Microphone muted after the connection was lost');}}
   finally{if(generation===this.micGeneration)this.sending=false;}

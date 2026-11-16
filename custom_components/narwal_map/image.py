@@ -167,6 +167,8 @@ class NarwalMapaImage(ImageEntity):
             zlib.crc32(repr((m.raw.get("40"), m.raw.get("26"), m.raw.get("11"), m.raw.get("9"), m.raw.get("50"))).encode()),
             robot,
             trail_signature,
+            tuple((x, y) if math.isfinite(x) and math.isfinite(y) else None
+                  for x, y in getattr(m, "background_trail", [])),
             tuple((key, repr(value)) for key, value in metadata.items()),
         )
         return m, robot, trail, pins, signature, metadata

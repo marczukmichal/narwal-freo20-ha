@@ -24,6 +24,8 @@ RECONNECT_DELAYS: Final = (0.0, 2.0, 5.0)
 # most this often while the robot moves.
 PATH_MIN_STEP: Final = 0.5
 PATH_MAX_POINTS: Final = 20_000
+# Indexed trajectory must retain its prefix: no sliding window.
+TRACK_MAX_POINTS: Final = 200_000
 LIVE_MAP_INTERVAL: Final = timedelta(seconds=5)
 
 # Fallback polling; pushes normally arrive much more often.

@@ -17,40 +17,35 @@ MAX_GAP = 5000
 
 
 def _same(a: tuple[float, float], b: tuple[float, float]) -> bool:
-    return abs(a[0] - b[0]) < 1e-3 and abs(a[1] - b[1]) < 1e-3
+    return all((not math.isfinite(x) and not math.isfinite(y)) or abs(x - y) < 1e-3
+               for x, y in zip(a, b))
 
 
-def stitch(track: list[tuple[float, float]], first: int, points: Sequence[tuple[float, float]],
-           limit: int) -> bool:
-    """Write `points` into `track` at index `first`. Returns True on change."""
+def stitch(track: list[tuple[float, float]], first: int | None,
+           points: Sequence[tuple[float, float]], limit: int) -> bool:
+    """Write an indexed window without shifting its absolute point indices.
+
+    Only an absent index permits overlap matching. Index zero is a real
+    prefix, including corrected points and gaps filled after reconnect.
+    """
+    if not points or first is not None and (first < 0 or first >= limit):
+        return False
+    if first is None:
+        first = next((i for i in range(len(track) - 1, -1, -1)
+                      if _same(track[i], points[0])), None)
+        if first is None:
+            first = len(track) + bool(track)
+    if first - len(track) > MAX_GAP:
+        return False  # never collapse a gap and corrupt every later index
+    points = points[:max(0, limit - first)]
     if not points:
         return False
-    before = (len(track), track[-1] if track else None)
-    if first > 0 or not track:
-        if first > len(track):
-            gap = first - len(track)
-            if gap > MAX_GAP:
-                track.append(NAN)
-            else:
-                track.extend([NAN] * gap)
-            track.extend(points)
-        else:
-            track[first:first + len(points)] = points
-    else:
-        # index 0 on a non-empty track: either the whole track again, or a
-        # window without an index; find where it continues the old track
-        if _same(track[0], points[0]) or len(points) >= len(track):
-            track[:len(points)] = points
-        else:
-            at = next((i for i in range(len(track) - 1, -1, -1) if _same(track[i], points[0])), None)
-            if at is None:
-                track.append(NAN)
-                track.extend(points)
-            else:
-                track[at:] = points
-    if len(track) > limit:
-        del track[: len(track) - limit]
-    return (len(track), track[-1] if track else None) != before
+    old = track[first:first + len(points)]
+    changed = len(old) != len(points) or any(not _same(a, b) for a, b in zip(old, points))
+    if changed:
+        track.extend([NAN] * max(0, first - len(track)))
+        track[first:first + len(points)] = points
+    return changed
 
 
 def pack_points(points: Iterable[tuple[float, float]]) -> list:

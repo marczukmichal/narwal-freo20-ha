@@ -410,9 +410,9 @@ def render_svg(m: Any, robot: tuple[float, float, float | None] | None = None,
     out.append("</g>")
 
     # Native trail: preserve segment breaks instead of drawing lines across rooms.
-    if trail:
+    for route, opacity in ((getattr(m, "background_trail", []), ".5"), (trail or [], "1")):
         segments, segment = [], []
-        for x, y in trail:
+        for x, y in route:
             if math.isfinite(x) and math.isfinite(y):
                 segment.append(G(x, y))
             else:
@@ -422,7 +422,7 @@ def render_svg(m: Any, robot: tuple[float, float, float | None] | None = None,
         if len(segment) > 1:
             segments.append(segment)
         for segment in segments:
-            out.append('<polyline fill="none" stroke="#ffffff" stroke-opacity=".85" stroke-width="5" '
+            out.append(f'<polyline fill="none" stroke="#ffffff" stroke-opacity="{opacity}" stroke-width="5" '
                        'stroke-linejoin="round" stroke-linecap="round" points="'
                        + " ".join(f"{x * S:.0f},{y * S:.0f}" for x, y in segment) + '"/>')
 
@@ -438,7 +438,7 @@ def render_svg(m: Any, robot: tuple[float, float, float | None] | None = None,
                    '<rect x="-27" y="-34" width="54" height="56" rx="12" fill="#fff" stroke="#b9c0ea" stroke-width="3"/>'
                    '<rect x="-12" y="8" width="24" height="5" rx="2.5" fill="#b9c0ea"/></g>')
 
-    # robot; z robot_overlay rysuje go karta HTML (płynny ruch między odczytami)
+    # robot; with robot_overlay the HTML card draws it (smooth movement between readings)
     if robot and robot_overlay and pins_out is not None:
         rx, ry = G(robot[0], robot[1])
         pins_out.append({"_robot": {"fx": round((rx * S - vx) / vw, 5), "fy": round((ry * S - vy) / vh, 5),

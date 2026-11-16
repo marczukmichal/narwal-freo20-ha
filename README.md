@@ -46,7 +46,8 @@ the integrations behind it, and the camera add-on.
 **Optional**
 
 - A schedule helper and the automation in `examples/schedule_automation.yaml`.
-- A TTS engine (for example Piper) for "say through the robot".
+- A TTS engine (for example Piper) for "say through the robot". Set
+  `tts_language` in the card (default `en`) to a language your engine has.
 - `browser_mod`, only if you want to open the window as a popup.
 
 **Not needed:** sjmotew/NarwalIntegration, button-card or other HACS cards.
@@ -81,12 +82,22 @@ Only administrators can start the camera, reset parts, edit zones or drive the r
 
 ## Known issues
 
-**Not working or not confirmed**
+**Working now (tested on the robot)**
 
-- **Typed speech (TTS) and push-to-talk:** do not play on the robot yet, also
-  after switching to AAC. The latest add-on adds ADTS headers to the AAC packets
-  and keeps the talk track published for the whole session, as the Narwal app
-  does; that change is untested.
+- **Typed speech (TTS) and push-to-talk** play on the robot. The Freo 20 does
+  not report AAC streaming, so the add-on now sends plain PCM in Agora's default
+  codec, paced in real time (20 ms frames), the same way the Narwal app does.
+  AAC is still there behind the add-on option `aac_audio` for other models.
+- **Say through the robot (no video):** one button in the camera tab connects
+  audio only, speaks the text with your TTS engine and disconnects. The robot
+  has no usable speech of its own: `/developer/text_to_speech` and `play_voice`
+  with sent audio are accepted but stay silent; it plays only its stored sounds.
+- **Camera light:** a flashlight button on the camera view and the service
+  `narwal_cloud.swiatlo_kamery` (0–100). It is the fill light from the app's
+  hidden lab; it stays on for up to 30 minutes or until you turn it off. The
+  other light that comes on with the camera is switched by the robot itself.
+- **Obstacle photos while driving by hand:** the photo is loaded straight from
+  the robot, also outside a cleaning.
 
 **Built but not tested on the robot yet**
 

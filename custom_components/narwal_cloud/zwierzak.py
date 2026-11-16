@@ -164,3 +164,28 @@ async def szukaj_zwierzaka(hass: HomeAssistant) -> None:
     res = _wynik(await _call(hass, "/pet/search_pet"))
     if res != 1:
         raise HomeAssistantError(f"The robot did not start the pet search (code {res})")
+
+
+SWIATLO_MS = 30 * 60 * 1000  # light stays on at most 30 min
+
+
+def _swiatlo_request(jasnosc: int) -> bytes:
+    """PerformChoreography{1 Function{1 Statement{3 CustomAction{9 CameraFillLight{1 brightness}}}}}:
+    the camera's fill light, as the app's laboratory sends it (0 turns it off)."""
+    from custom_components.narwal_local.protocol.pb import Writer  # noqa: PLC0415
+
+    swiatlo = Writer().message(3, Writer().message(9, Writer().int32(1, jasnosc, force=True)))
+    funkcja = Writer().message(1, swiatlo)
+    if jasnosc:
+        # The robot resets the light when the choreography ends, so hold it with a
+        # Wait {1 milliseconds}; a later request (off) replaces this one.
+        funkcja.message(1, Writer().message(3, Writer().message(1, Writer().varint(1, SWIATLO_MS))))
+    return bytes(Writer().message(1, funkcja))
+
+
+async def swiatlo_kamery(hass: HomeAssistant, jasnosc: int) -> None:
+    jasnosc = max(0, min(100, int(jasnosc)))
+    res = _wynik(await _call(hass, "/telecontrol/perform_choreography", _swiatlo_request(jasnosc)))
+    if res != 1:
+        raise HomeAssistantError(f"The robot did not change the light (code {res})")
+

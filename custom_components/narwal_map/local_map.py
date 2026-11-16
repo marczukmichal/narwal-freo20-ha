@@ -14,6 +14,30 @@ import zlib
 LIVE_POSITION_SECONDS = 15
 
 
+def track_layers(points, infos):
+    """Like the app: older passes within a group fade behind its latest pass.
+
+    Explicit metadata survives reconnects and avoids guessing a boundary from
+    time or clearing the vacuum track when the robot starts mopping.
+    """
+    infos = sorted(infos)
+    if not infos:
+        return list(points), []
+    latest = {}
+    for _, _, group, count in infos:
+        latest[group] = max(latest.get(group, 0), count)
+    active, background = [], []
+    for n, (start, kind, group, count) in enumerate(infos):
+        end = infos[n + 1][0] if n + 1 < len(infos) else len(points) - 1
+        if not kind or start < 0 or start >= len(points):
+            continue
+        target = background if count < latest[group] else active
+        if target:
+            target.append((math.nan, math.nan))
+        target.extend(points[start:min(end + 1, len(points))])
+    return active, background
+
+
 def local_snapshot(coordinator, *, now: float | None = None):
     """Return renderer data without importing Home Assistant or sending commands."""
     data = getattr(coordinator, "data", None)
@@ -68,20 +92,30 @@ def local_snapshot(coordinator, *, now: float | None = None):
         "live" if connected and age is not None and age <= LIVE_POSITION_SECONDS else
         "last_known"
     )
-    trail = []
-    if docked is not True:
-        # The robot's own track (whole job, stitched) when it sends one,
-        # else the positions sampled since Home Assistant started.
-        track = getattr(live, "track", None) or ()
-        route = track if sum(1 for x, _ in track if math.isfinite(x)) >= 2 else live.path
+    def grid_route(route):
+        result = []
         for x, y in route:
             x, y = x - origin_x, y - origin_y
             if math.isfinite(x) and math.isfinite(y) and 0 <= x < mi.width and 0 <= y < mi.height:
-                trail.append((x, y))
-            elif trail and math.isfinite(trail[-1][0]):
-                trail.append((float("nan"), float("nan")))
+                result.append((x, y))
+            elif result and math.isfinite(result[-1][0]):
+                result.append((float("nan"), float("nan")))
+        return result
+
+    track = getattr(live, "track", None) or ()
+    # Keep the route visible during mid-job docking (mop washing / charging).
+    show_track = docked is not True or data.status.in_clean_task
+    route = track if sum(1 for x, _ in track if math.isfinite(x)) >= 2 else live.path
+    infos = getattr(live, "track_info", {}).values() if track else ()
+    active, background = track_layers(route, infos)
+    trail = grid_route(active) if show_track else []
+    m.background_trail = grid_route(background) if show_track else []
     metadata = {
         "map_source": "narwal_local",
+        "clean_started": m.clean_started,
+        "in_clean_task": bool(data.status.in_clean_task),
+        "live_obstacles": [{"id": f"live-{oid}", "x": x, "y": y, "etykieta": label}
+                           for oid, label, x, y in m.live_obstacles],
         "robot_docked": docked,
         "robot_position_status": position_status,
         "robot_position": {"x": robot[0], "y": robot[1]} if robot else None,

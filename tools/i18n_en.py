@@ -46,6 +46,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
     ],
     # ------------------------------------------------------------ narwal_chmura
     "custom_components/narwal_chmura/__init__.py": [
+        ('"Nie udało się pobrać zdjęcia z robota. Spróbuj ponownie."', '"Could not load the photo from the robot. Try again."'),
         ('f"Sesja Narwal wygasła: {err}"', 'f"Narwal session expired: {err}"'),
         ('"Tylko administrator"', '"Administrators only"'),
         ("f\"Brak appId: {info.get('msg')}\"", "f\"No appId: {info.get('msg')}\""),
@@ -111,6 +112,13 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
         ('TRYB.get(r.get("task_type"), "Sprzątanie")', 'TRYB.get(r.get("task_type"), "Cleaning")'),
     ],
     "custom_components/narwal_chmura/przeszkody.py": [
+        ('"Brak połączenia lokalnego z robotem"', '"No local connection to the robot"'),
+        ('"Ta przeszkoda nie należy już do bieżącego sprzątania"', '"This obstacle no longer belongs to the current cleaning"'),
+        ('"Robot nie udostępnił jeszcze zdjęcia tej przeszkody. Spróbuj ponownie później."', '"The robot has not shared a photo of this obstacle yet. Try again later."'),
+        ('"Robot zwrócił nieobsługiwany adres zdjęcia"', '"The robot returned an unsupported photo address"'),
+        ('"Robot nie zwrócił poprawnego zdjęcia"', '"The robot did not return a valid photo"'),
+        ('"Sprzątanie zmieniło się podczas pobierania zdjęcia"', '"The cleaning changed while the photo was loading"'),
+        ('"Nie ma takiego sprzątania w chmurze Narwal"', '"No such cleaning in the Narwal cloud"'),
         ('0: "Nieznany obiekt", 1: "Kabel", 2: "Chusteczka", 3: "Odchody", 4: "Płyn",',
          '0: "Unknown object", 1: "Cable", 2: "Tissue", 3: "Pet waste", 4: "Liquid",'),
         ('5: "Buty", 6: "Brud stały", 7: "Skarpetki", 8: "Reklamówka", 9: "Kosz na śmieci",',
@@ -211,6 +219,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
         ('"Robot śpi i nie podał listy dźwięków"', '"The robot is asleep and did not send the sound list"'),
         ('"Nieznany dźwięk"', '"Unknown sound"'),
         ('f"Robot nie odtworzył dźwięku (kod {res})"', 'f"The robot did not play the sound (code {res})"'),
+        ('f"Robot nie zmienił światła (kod {res})"', 'f"The robot did not change the light (code {res})"'),
         ('f"Robot nie zaczął szukać zwierzaka (kod {res})"', 'f"The robot did not start the pet search (code {res})"'),
     ],
     # --------------------------------------------------------------- narwal_mapa
@@ -254,6 +263,7 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
         ('"""Zwróć aktualne SVG."""', '"""Return the current SVG."""'),
     ],
     "custom_components/narwal_mapa/mapa_svg.py": [
+        ('# robot; z robot_overlay rysuje go karta HTML (płynny ruch między odczytami)', '# robot; with robot_overlay the HTML card draws it (smooth movement between readings)'),
         ('"""Rysuje mapę Narwal jako SVG w stylu aplikacji (pastelowe pokoje, ściany, meble, strefy).',
          '"""Draws the Narwal map as SVG in the app\'s style (pastel rooms, walls, furniture, zones).'),
         ("Czysty Python, bez zależności. Wejście to obiekt MapData integracji `narwal`",
@@ -325,5 +335,9 @@ PAIRS: dict[str, list[tuple[str, str]]] = {
          '10: "Corridor", 11: "Study", 12: "Kids room", 13: "Game room",'),
         ('14: "Schowek", 15: "Inne",', '14: "Storage", 15: "Other",'),
         ('ROOM_TYPE_NAMES.get(self.room_type, "Pokój")', 'ROOM_TYPE_NAMES.get(self.room_type, "Room")'),
+    ],
+    "custom_components/narwal_local/protocol/photo.py": [
+        ('"Nieprawidłowy identyfikator przeszkody"', '"Invalid obstacle id"'),
+        ('"Zdjęcie jest zbyt duże"', '"The photo is too large"'),
     ],
 }

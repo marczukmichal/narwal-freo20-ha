@@ -195,6 +195,7 @@ class MapInfo:
     # draws after (re)opening; 14 is another encoding (format 15), kept raw
     trajectory: tuple[tuple[float, float], ...] = ()
     trajectory_raw_len: int = 0
+    trajectory_infos: tuple[tuple[int, int, int, int], ...] = ()
     furniture: list[Furniture] = field(default_factory=list)  # 32.1
     obstacles: list[Obstacle] = field(default_factory=list)  # 32.2
     dirt: list[Dirt] = field(default_factory=list)  # 32.3
@@ -602,6 +603,8 @@ def decode_static_map_payload(payload: bytes) -> MapInfo:
                 mi.edit_version = f.int
             case 40:
                 mi.custom_regions.append([_point(p.data) for p in parse(f.data) if p.num == 1])
+            case 31:
+                mi.trajectory_infos += (_trajectory_info(f.data),)
             case 50:
                 mi.virtual_walls.append(_wall(f.data))
             case 51:
@@ -653,8 +656,9 @@ class DisplayMap:
     # pairs mark breaks. trajectory_first (3) is the index of its first point
     # in the job's whole track, so windows can be stitched together.
     trajectory: tuple[tuple[float, float], ...] | None = None
-    trajectory_first: int = 0
+    trajectory_first: int | None = None
     zone_id: int = 0  # 4 currentCleanZoneId
+    trajectory_infos: tuple[tuple[int, int, int, int], ...] = ()
 
 
 def _incremental(buf: bytes, add: list, delete: list, seen: list) -> None:
@@ -676,6 +680,15 @@ def _entire_vision(buf: bytes, seen: list) -> tuple[Obstacle, ...] | None:
     return None
 
 
+def _trajectory_info(buf: bytes) -> tuple[int, int, int, int]:
+    """RobotTrajectoryInfo: point index, type, group id, cleaning pass.
+
+    App 2.11.90 MapBaseType.pb.dart: fields 2, 1, 3, 4 respectively.
+    """
+    values = {f.num: f.int for f in parse(buf) if f.wtype == WIRE_VARINT}
+    return values.get(2, 0), values.get(1, 0), values.get(3, 0), values.get(4, 0)
+
+
 def _trajectory(buf: bytes) -> tuple[tuple[float, float], ...]:
     xs: list[float] = []
     ys: list[float] = []
@@ -693,8 +706,10 @@ def _trajectory(buf: bytes) -> tuple[tuple[float, float], ...]:
 def decode_display_map(payload: bytes) -> DisplayMap:
     robot = dock = everything = None
     trajectory = None
-    first = zone = 0
+    first = None
+    zone = 0
     ts = 0
+    infos = []
     add: list[Obstacle] = []
     delete: list[int] = []
     seen: list[str] = []
@@ -715,6 +730,8 @@ def decode_display_map(payload: bytes) -> DisplayMap:
             first = f.int
         elif f.num == 4 and f.wtype == WIRE_VARINT:
             zone = f.int
+        elif f.num == 9 and f.wtype == WIRE_LEN:
+            infos.append(_trajectory_info(f.data))
         elif f.num == 7 and f.wtype != WIRE_VARINT:
             try:
                 _incremental(f.data, add, delete, seen)
@@ -726,4 +743,4 @@ def decode_display_map(payload: bytes) -> DisplayMap:
             except ValueError:
                 seen.append("8.bad")
     return DisplayMap(robot, dock, ts, everything, tuple(add), tuple(delete), tuple(seen),
-                      trajectory, first, zone)
+                      trajectory, first, zone, tuple(infos))

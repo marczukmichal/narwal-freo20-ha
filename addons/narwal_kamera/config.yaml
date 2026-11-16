@@ -1,5 +1,5 @@
 name: Narwal kamera
-version: "0.3.1"
+version: "0.3.2"
 slug: narwal_kamera
 description: Receives the Narwal Freo 20 camera (Agora) and serves it to the narwal_cloud integration
 arch:

@@ -231,6 +231,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def odtworz_dzwiek(call: ServiceCall):
         await zwierzak.odtworz(hass, call.data["plik"])
 
+    async def swiatlo_kamery(call: ServiceCall):
+        await zwierzak.swiatlo_kamery(hass, call.data["jasnosc"])
+
     async def zeruj_czesc(call: ServiceCall):
         await _admin(call)
         kod = call.data["kod"]
@@ -301,10 +304,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_register(DOMAIN, "odtworz_dzwiek", odtworz_dzwiek,
                                      schema=vol.Schema({vol.Required("plik"): str}))
         hass.services.async_register(DOMAIN, "szukaj_zwierzaka", szukaj_zwierzaka)
+        hass.services.async_register(DOMAIN, "swiatlo_kamery", swiatlo_kamery, schema=vol.Schema({
+            vol.Required("jasnosc"): vol.All(vol.Coerce(int), vol.Range(min=0, max=100))}))
         hass.services.async_register(DOMAIN, "zeruj_czesc", zeruj_czesc,
                                      schema=vol.Schema({vol.Required("kod"): vol.All(str, vol.Match(r"^[A-Za-z0-9]{4,32}$"))}))
     if not hass.services.has_service(DOMAIN, "refresh_obstacles"):
         hass.services.async_register(DOMAIN, "refresh_obstacles", refresh_obstacles)
+
+    async def zdjecie_przeszkody(call: ServiceCall):
+        try:
+            return await przeszkody.na_zywo(call.data["id"], call.data["sprzatanie"])
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+        except Exception as err:
+            _LOGGER.debug("Live obstacle photo failed: %s", type(err).__name__)
+            raise HomeAssistantError("Could not load the photo from the robot. Try again.") from err
+
+    if not hass.services.has_service(DOMAIN, "zdjecie_przeszkody"):
+        hass.services.async_register(DOMAIN, "zdjecie_przeszkody", zdjecie_przeszkody,
+            schema=vol.Schema({vol.Required("id"): vol.All(int, vol.Range(min=0, max=2**31-1)),
+                               vol.Required("sprzatanie"): vol.All(vol.Coerce(float), vol.Range(min=1))}),
+            supports_response=SupportsResponse.ONLY)
 
     async def przeszkody_sprzatania(call: ServiceCall):
         """Obstacle photos of one earlier clean (Historia), fetched on demand so
@@ -348,6 +368,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, "start_wideo")
         hass.services.async_remove(DOMAIN, "refresh_obstacles")
         hass.services.async_remove(DOMAIN, "przeszkody_sprzatania")
+        hass.services.async_remove(DOMAIN, "zdjecie_przeszkody")
         hass.services.async_remove(DOMAIN, "camera_session")
         hass.services.async_remove(DOMAIN, "dzwieki")
         hass.services.async_remove(DOMAIN, "steruj")
@@ -355,6 +376,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, "sprawdz_sprzatanie")
         hass.services.async_remove(DOMAIN, "odtworz_dzwiek")
         hass.services.async_remove(DOMAIN, "szukaj_zwierzaka")
+        hass.services.async_remove(DOMAIN, "swiatlo_kamery")
         hass.services.async_remove(DOMAIN, "zeruj_czesc")
     return True
 

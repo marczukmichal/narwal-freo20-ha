@@ -9,8 +9,10 @@ Decrypted photos are kept under /config/.storage/narwal_przeszkody (not www).
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
+import time
 import logging
 import re
 from datetime import datetime, timezone
@@ -61,6 +63,7 @@ class Przeszkody:
         self.product_id: str | None = None
         self._dev_key = None
         self._iv: bytes | None = None
+        self._photo_lock = asyncio.Lock()
         self.data: dict = {"lista": [], "sprzatanie": None}
 
     async def _device(self) -> None:
@@ -103,6 +106,61 @@ class Przeszkody:
         if not out.startswith(b"\xff\xd8"):
             raise ValueError("not a JPEG")
         return out
+
+    async def na_zywo(self, obstacle_id: int, job: float) -> dict:
+        """Fetch only a recognised obstacle from this job, on the user's click."""
+        from ..narwal_local.protocol.photo import MAX_PHOTO_BYTES, photo_request, photo_response
+        from ..narwal_local.protocol.enums import ServiceResult
+        from urllib.parse import urlparse
+
+        coordinator = next((getattr(e, "runtime_data", None)
+                            for e in self.hass.config_entries.async_entries("narwal_local")
+                            if getattr(e, "disabled_by", None) is None), None)
+        if coordinator is None:
+            raise ValueError("No local connection to the robot")
+
+        def cleaning() -> bool:
+            return coordinator.data is not None and coordinator.data.status.in_clean_task
+
+        # Outside a clean (manual driving, remote control) the robot still recognises
+        # obstacles and keeps their photos, but there is no job to tie them to: fetch
+        # the photo fresh each time, under a folder of its own.
+        in_job = cleaning()
+
+        def current():
+            if not in_job:
+                return not cleaning()
+            return coordinator.live.clean_started == job and obstacle_id in coordinator.live.obstacles
+        if not current():
+            raise ValueError("This obstacle no longer belongs to the current cleaning")
+        folder = self.dir / str(int((job if in_job else time.time()) * 1000))
+        path = folder / f"{obstacle_id}.jpg"
+        async with self._photo_lock:
+            if not in_job or not await self.hass.async_add_executor_job(path.is_file):
+                reply = await coordinator.robot.call("/map/get_vision_image", photo_request(obstacle_id), timeout=15)
+                photo = photo_response(reply.payload)
+                if photo.result != ServiceResult.PERFORM_SUCCESS:
+                    raise ValueError("The robot has not shared a photo of this obstacle yet. Try again later.")
+                data = photo.image
+                if not data and photo.url:
+                    url = urlparse(photo.url)
+                    if url.scheme != "https" or not url.hostname or url.username or url.password:
+                        raise ValueError("The robot returned an unsupported photo address")
+                    # Fetch only the robot's existing photo, bounded in size. Never log signed URLs.
+                    async with self.api._session.get(photo.url, timeout=20) as response:
+                        response.raise_for_status()
+                        data = await response.content.read(MAX_PHOTO_BYTES + 1)
+                if not data or len(data) > MAX_PHOTO_BYTES:
+                    raise ValueError("The robot did not return a valid photo")
+                if not data.startswith(b"\xff\xd8"):
+                    await self._device()
+                    await self._klucz()
+                    data = await self.hass.async_add_executor_job(self._odszyfruj, data)
+                if not current():
+                    raise ValueError("The cleaning changed while the photo was loading")
+                await self.hass.async_add_executor_job(lambda: folder.mkdir(parents=True, exist_ok=True))
+                await self.hass.async_add_executor_job(path.write_bytes, data)
+        return {"sciezka": f"/api/narwal_cloud/przeszkoda/{folder.name}/{obstacle_id}.jpg"}
 
     async def odswiez(self) -> dict:
         data = await self._przeszkody()
@@ -158,16 +216,12 @@ class Przeszkody:
         res = await self.api.request("GET", RECORDS_PATH, **self._kw(
             params={"deviceId": self.device_id, "productId": self.product_id}))
         records = sorted(res.get("result") or [], key=lambda r: r.get("start_time") or 0, reverse=True)
-        for rec in records[:5]:
-            lista = await self.rekord(rec)
-            if not lista:
-                continue
-            return {
-                "lista": lista,
+        if not records:
+            return {"lista": [], "sprzatanie": None}
+        rec = records[0]
+        return {"lista": await self.rekord(rec),
                 "sprzatanie": datetime.fromtimestamp(rec.get("start_time") or 0, timezone.utc).isoformat(),
-                "rekord": str(rec.get("record_id")),
-            }
-        return {"lista": [], "sprzatanie": None}
+                "rekord": str(rec.get("record_id"))}
 
     async def sprzatanie(self, rekord: str) -> dict:
         """Photos of one cleaning record (the app's record detail), on request."""
@@ -176,7 +230,7 @@ class Przeszkody:
             params={"deviceId": self.device_id, "productId": self.product_id}))
         rec = next((r for r in res.get("result") or [] if str(r.get("record_id")) == str(rekord)), None)
         if rec is None:
-            raise ValueError("Nie ma takiego sprzątania w chmurze Narwal")
+            raise ValueError("No such cleaning in the Narwal cloud")
         return {"rekord": str(rekord),
                 "sprzatanie": datetime.fromtimestamp(rec.get("start_time") or 0, timezone.utc).isoformat(),
                 "lista": await self.rekord(rec)}
