@@ -51,31 +51,19 @@ the integrations behind it, and the camera add-on.
 
 ## Install
 
+**Full step-by-step guide with troubleshooting: [docs/INSTALL.md](docs/INSTALL.md).**
+
+Quick start:
+
 1. Copy `custom_components/narwal_local`, `narwal_mapa` and `narwal_chmura` to
-   `/config/custom_components/`.
-2. Add this line to `configuration.yaml` (it enables the map):
-
-   ```yaml
-   narwal_mapa:
-   ```
-
-3. Copy `www/narwal` to `/config/www/narwal`.
-4. Restart Home Assistant.
-5. Add the **Narwal Local** integration with the robot's IP address. Keep the
-   device name "Narwal": the window expects entity ids such as `sensor.narwal_battery`.
-6. Add the **Narwal Cloud Companion** integration with your Narwal email,
-   password and region. The password is not stored; only the session token is.
-7. Add the robot through **Matter** if it is not there yet. The window expects
-   `vacuum.freo_20` and `select.freo_20_clean_mode`.
-8. Camera add-on: copy `addons/narwal_kamera` into the local add-ons folder
-   (`/addons`, called `local_apps` in newer SSH and Samba add-ons). In
-   **Settings → Add-ons → Add-on store → ⋮ → Check for updates**, open
-   **Narwal kamera** under Local add-ons, install and start it. It must be a
-   local add-on: the integration reaches it at `http://local-narwal-kamera:8099`.
-   The `device_id` option can stay empty; the robot on your account is used.
-9. Add `/local/narwal/dashboard.js` as a **JavaScript module** resource
-   (Settings → Dashboards → ⋮ → Resources).
-10. Add the card from [examples/card.yaml](examples/card.yaml) to a dashboard.
+   `/config/custom_components/`, and `www/narwal` to `/config/www/narwal`.
+2. Add `narwal_mapa:` to `configuration.yaml` and restart Home Assistant.
+3. Add integration **Narwal Local** (robot IP), then **Narwal Cloud Companion**
+   (Narwal email, password, region). Pair the robot with **Matter** too.
+4. Camera (HA OS only): copy `addons/narwal_kamera` to the local add-ons folder,
+   install and start **Narwal kamera**.
+5. Add `/local/narwal/dashboard.js` as a JavaScript module resource and add the
+   card from [examples/card.yaml](examples/card.yaml).
 
 Only administrators can start the camera, reset parts, edit zones or drive the robot.
 
