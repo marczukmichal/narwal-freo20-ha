@@ -83,8 +83,10 @@ Only administrators can start the camera, reset parts, edit zones or drive the r
 
 **Not working or not confirmed**
 
-- **Typed speech (TTS) and push-to-talk:** did not play on the robot in my
-  tests. The audio path was changed to AAC since then, but that fix is untested.
+- **Typed speech (TTS) and push-to-talk:** do not play on the robot yet, also
+  after switching to AAC. The latest add-on adds ADTS headers to the AAC packets
+  and keeps the talk track published for the whole session, as the Narwal app
+  does; that change is untested.
 
 **Built but not tested on the robot yet**
 

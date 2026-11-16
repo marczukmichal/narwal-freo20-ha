@@ -20,10 +20,9 @@ from sessions import ViewerSessions
 from audio_bridge import AudioBridge
 from talk_audio import TalkAudio
 from video_bridge import FrameSlot
+from video_encode import JpegEncoder
 from agora.rtc.audio_frame_observer import IAudioFrameObserver
 
-import numpy as np
-from PIL import Image
 from agora.rtc.agora_base import (AgoraServiceConfig, ChannelProfileType, ClientRoleType,
                                   EncryptionConfig, RTCConnConfig, RtcConnectionPublishConfig, AudioScenarioType,
                                   AudioPublishType)
@@ -212,7 +211,7 @@ def connect():
 def disconnect():
     audio.reset()
     conn = state["conn"]
-    state.update(conn=None, status="idle", raw=None, jpeg=None, audio_track_observer=None, fps_logged=False); state.pop("fps_win", None)
+    state.update(conn=None, status="idle", raw=None, jpeg=None, audio_track_observer=None, fps_logged=False, fps_out=None, enc_ms=None); state.pop("fps_win", None)
     raw_frames.put(None)
     jpeg_frames.put(None)
     if conn:
@@ -246,6 +245,8 @@ def manager():
 
 def encoder():
     last = 0
+    jpeg = JpegEncoder(max_w=MAX_W)
+    win = [time.time(), 0, 0.0]  # start, frames, encode seconds
     while True:
         sequence, frame = raw_frames.wait(last)
         if frame is None or sequence == last:
@@ -258,17 +259,19 @@ def encoder():
             continue
         raw, t = frame
         try:
-            w, h, ys, us, vs, yb, ub, vb = raw
-            y = np.frombuffer(yb, np.uint8)[: h * ys].reshape(h, ys)[:, :w]
-            u = np.frombuffer(ub, np.uint8)[: (h // 2) * us].reshape(h // 2, us)[:, : w // 2]
-            v = np.frombuffer(vb, np.uint8)[: (h // 2) * vs].reshape(h // 2, vs)[:, : w // 2]
-            img = Image.merge("YCbCr", [Image.fromarray(y), Image.fromarray(u).resize((w, h)),
-                                        Image.fromarray(v).resize((w, h))]).convert("RGB")
-            if w > MAX_W:
-                img = img.resize((MAX_W, round(h * MAX_W / w)))
-            buf = io.BytesIO(); img.save(buf, "JPEG", quality=80)
-            state["jpeg"], state["jpeg_t"] = buf.getvalue(), t
-            jpeg_frames.put(buf.getvalue())
+            t0 = time.perf_counter()
+            data = jpeg.encode(raw)
+            if jpeg.error:
+                log("libav encoder failed, using Pillow", jpeg.error); jpeg.error = None
+            win[1] += 1; win[2] += time.perf_counter() - t0
+            state["jpeg"], state["jpeg_t"] = data, t
+            jpeg_frames.put(data)
+            now = time.time()
+            if now - win[0] >= 5:  # what the viewer actually gets
+                state["fps_out"] = round(win[1] / (now - win[0]), 1)
+                state["enc_ms"] = round(win[2] / max(win[1], 1) * 1000, 1)
+                state["encoder"] = "pillow" if jpeg.failed else "libav"
+                win[:] = [now, 0, 0.0]
         except Exception as e:  # noqa: BLE001
             log("encode error", e)
 
@@ -365,7 +368,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/status"):
-            body = json.dumps({k: state.get(k) for k in ("status", "frames", "jpeg_t", "fps_in", "size")}).encode()
+            body = json.dumps({k: state.get(k) for k in ("status", "frames", "jpeg_t", "fps_in", "size", "fps_out", "enc_ms", "encoder")}).encode()
             self.send_response(200); self.send_header("Content-Type", "application/json")
             self.end_headers(); self.wfile.write(body); return
         if self.path.startswith(("/frame.jpg", "/stream")) and not viewers.active():

@@ -35,6 +35,8 @@ class AudioBridge:
     def reset(self):
         with self.lock:
             self._stop_talk()
+            if self.sender:
+                self.sender.close()
             if self.conn and self.subscribed:
                 self.conn.get_local_user().unsubscribe_all_audio()
             self.subscribed = False
@@ -52,7 +54,7 @@ class AudioBridge:
     def _stop_talk(self):
         if self.talker and self.conn:
             code = self.sender.stop() if self.sender else self.conn.unpublish_audio()
-            self.logger("talk stopped", "unpublish_audio", code)
+            self.logger("talk stopped", "code", code)
         self.talker = None
 
     def tick(self):
