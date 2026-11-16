@@ -24,6 +24,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 import gzip
+import struct
 import zlib
 
 from .enums import (
@@ -190,6 +191,10 @@ class MapInfo:
     custom_regions: list[list[Point]] = field(default_factory=list)  # 40, border-frame floats
     station: Pose | None = None  # 8
     robot_pose: Pose | None = None  # 24, as of the last map save
+    # 13: the whole cleaned track of the current / last job, what the app
+    # draws after (re)opening; 14 is another encoding (format 15), kept raw
+    trajectory: tuple[tuple[float, float], ...] = ()
+    trajectory_raw_len: int = 0
     furniture: list[Furniture] = field(default_factory=list)  # 32.1
     obstacles: list[Obstacle] = field(default_factory=list)  # 32.2
     dirt: list[Dirt] = field(default_factory=list)  # 32.3
@@ -210,7 +215,8 @@ class MapInfo:
         return (self.map_id, self.map_version, self.edit_version)
 
     def room_name(self, room_id: int) -> str | None:
-        return next((r.name for r in self.rooms if r.id == room_id), None)
+        # display_name: rooms without a custom name get the app's type name
+        return next((r.display_name for r in self.rooms if r.id == room_id), None)
 
     # --- coordinates ----------------------------------------------------
 
@@ -571,6 +577,13 @@ def decode_static_map_payload(payload: bytes) -> MapInfo:
                 mi.station = _pose(f.data)
             case 24:
                 mi.robot_pose = _pose(f.data)
+            case 13 if f.wtype != WIRE_VARINT:
+                try:
+                    mi.trajectory = _trajectory(f.data)
+                except (ValueError, struct.error):
+                    mi.trajectory = ()
+            case 14 if f.wtype != WIRE_VARINT:
+                mi.trajectory_raw_len = len(f.data)
             case 32:
                 _vision_data(f.data, mi)
             case 9:
@@ -636,6 +649,12 @@ class DisplayMap:
     obstacles_add: tuple[Obstacle, ...] = ()
     obstacles_delete: tuple[int, ...] = ()
     fields: tuple[str, ...] = ()  # which fields the push carried, for logging
+    # Cleaned track (2 RobotTrajectory{1 ptsX, 2 ptsY packed floats}); NaN
+    # pairs mark breaks. trajectory_first (3) is the index of its first point
+    # in the job's whole track, so windows can be stitched together.
+    trajectory: tuple[tuple[float, float], ...] | None = None
+    trajectory_first: int = 0
+    zone_id: int = 0  # 4 currentCleanZoneId
 
 
 def _incremental(buf: bytes, add: list, delete: list, seen: list) -> None:
@@ -657,8 +676,24 @@ def _entire_vision(buf: bytes, seen: list) -> tuple[Obstacle, ...] | None:
     return None
 
 
+def _trajectory(buf: bytes) -> tuple[tuple[float, float], ...]:
+    xs: list[float] = []
+    ys: list[float] = []
+    for f in parse(buf):
+        if f.num in (1, 2):
+            out = xs if f.num == 1 else ys
+            if f.wtype == WIRE_FIXED32:
+                out.append(f.float)
+            elif f.wtype != WIRE_VARINT:
+                raw = f.data
+                out.extend(struct.unpack(f"<{len(raw) // 4}f", raw[: len(raw) // 4 * 4]))
+    return tuple(zip(xs, ys))
+
+
 def decode_display_map(payload: bytes) -> DisplayMap:
     robot = dock = everything = None
+    trajectory = None
+    first = zone = 0
     ts = 0
     add: list[Obstacle] = []
     delete: list[int] = []
@@ -671,6 +706,15 @@ def decode_display_map(payload: bytes) -> DisplayMap:
             dock = _pose(f.data)
         elif f.num == 10 and f.wtype == WIRE_VARINT:
             ts = f.int
+        elif f.num == 2 and f.wtype != WIRE_VARINT:
+            try:
+                trajectory = _trajectory(f.data)
+            except (ValueError, struct.error):
+                seen.append("2.bad")
+        elif f.num == 3 and f.wtype == WIRE_VARINT:
+            first = f.int
+        elif f.num == 4 and f.wtype == WIRE_VARINT:
+            zone = f.int
         elif f.num == 7 and f.wtype != WIRE_VARINT:
             try:
                 _incremental(f.data, add, delete, seen)
@@ -681,4 +725,5 @@ def decode_display_map(payload: bytes) -> DisplayMap:
                 everything = _entire_vision(f.data, seen)
             except ValueError:
                 seen.append("8.bad")
-    return DisplayMap(robot, dock, ts, everything, tuple(add), tuple(delete), tuple(seen))
+    return DisplayMap(robot, dock, ts, everything, tuple(add), tuple(delete), tuple(seen),
+                      trajectory, first, zone)

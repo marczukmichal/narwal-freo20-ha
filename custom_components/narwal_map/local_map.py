@@ -70,7 +70,11 @@ def local_snapshot(coordinator, *, now: float | None = None):
     )
     trail = []
     if docked is not True:
-        for x, y in live.path:
+        # The robot's own track (whole job, stitched) when it sends one,
+        # else the positions sampled since Home Assistant started.
+        track = getattr(live, "track", None) or ()
+        route = track if sum(1 for x, _ in track if math.isfinite(x)) >= 2 else live.path
+        for x, y in route:
             x, y = x - origin_x, y - origin_y
             if math.isfinite(x) and math.isfinite(y) and 0 <= x < mi.width and 0 <= y < mi.height:
                 trail.append((x, y))

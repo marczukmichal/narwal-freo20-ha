@@ -158,49 +158,70 @@ class Przeszkody:
         res = await self.api.request("GET", RECORDS_PATH, **self._kw(
             params={"deviceId": self.device_id, "productId": self.product_id}))
         records = sorted(res.get("result") or [], key=lambda r: r.get("start_time") or 0, reverse=True)
-        session = self.api._session  # noqa: SLF001
         for rec in records[:5]:
-            rid = str(rec.get("record_id"))
-            det = await self.api.request("GET", DETAIL_PATH, **self._kw(params={
-                "clean_record_id": rid, "product_id": self.product_id, "device_id": self.device_id}))
-            res = det.get("result") or {}
-            imgs = (res.get("image_resources") or {}).get("obs_images") or []
-            poz = {}
-            for v in (res.get("vision_data") or {}).get("vision_obs") or []:
-                c = (v.get("box") or {}).get("center") or {}
-                if v.get("id") is not None and c.get("x") is not None:
-                    poz[str(v["id"])] = (round(float(c["x"]), 2), round(float(c.get("y", 0)), 2))
-            if not imgs:
+            lista = await self.rekord(rec)
+            if not lista:
                 continue
-            await self._klucz()
-            folder = self.dir / rid
-            await self.hass.async_add_executor_job(lambda: folder.mkdir(parents=True, exist_ok=True))
-            lista = []
-            for im in imgs:
-                url = im.get("url") or ""
-                m = _NAME.search(url)
-                ts, label = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
-                plik = folder / f"{im.get('id')}.jpg"
-                if not plik.exists():
-                    try:
-                        async with session.get(url, timeout=30) as r:
-                            enc = await r.read()
-                        jpg = await self.hass.async_add_executor_job(self._odszyfruj, enc)
-                        await self.hass.async_add_executor_job(plik.write_bytes, jpg)
-                    except Exception as err:  # noqa: BLE001
-                        _LOGGER.warning("Obstacle photo %s: %s", im.get("id"), err)
-                        continue
-                czas = datetime.fromtimestamp(ts / 1e9, timezone.utc).isoformat() if ts > 1e17 else None
-                lista.append({"id": im.get("id"), "etykieta": label,
-                              "nazwa": ETYKIETY.get(label, f"Object {label}"), "czas": czas,
-                              "x": poz.get(str(im.get("id")), (None, None))[0],
-                              "y": poz.get(str(im.get("id")), (None, None))[1],
-                              "mapa": res.get("map_id") or rec.get("map_id"),
-                              "sciezka": f"/api/narwal_cloud/przeszkoda/{rid}/{im.get('id')}.jpg"})
-            lista.sort(key=lambda x: x["czas"] or "", reverse=True)
             return {
                 "lista": lista,
                 "sprzatanie": datetime.fromtimestamp(rec.get("start_time") or 0, timezone.utc).isoformat(),
-                "rekord": rid,
+                "rekord": str(rec.get("record_id")),
             }
         return {"lista": [], "sprzatanie": None}
+
+    async def sprzatanie(self, rekord: str) -> dict:
+        """Photos of one cleaning record (the app's record detail), on request."""
+        await self._device()
+        res = await self.api.request("GET", RECORDS_PATH, **self._kw(
+            params={"deviceId": self.device_id, "productId": self.product_id}))
+        rec = next((r for r in res.get("result") or [] if str(r.get("record_id")) == str(rekord)), None)
+        if rec is None:
+            raise ValueError("Nie ma takiego sprzątania w chmurze Narwal")
+        return {"rekord": str(rekord),
+                "sprzatanie": datetime.fromtimestamp(rec.get("start_time") or 0, timezone.utc).isoformat(),
+                "lista": await self.rekord(rec)}
+
+    async def rekord(self, rec: dict) -> list[dict]:
+        """Download and decrypt the obstacle photos of one record (cached)."""
+        rid = str(rec.get("record_id"))
+        if not rid.isdigit():
+            return []
+        det = await self.api.request("GET", DETAIL_PATH, **self._kw(params={
+            "clean_record_id": rid, "product_id": self.product_id, "device_id": self.device_id}))
+        res = det.get("result") or {}
+        imgs = (res.get("image_resources") or {}).get("obs_images") or []
+        poz = {}
+        for v in (res.get("vision_data") or {}).get("vision_obs") or []:
+            c = (v.get("box") or {}).get("center") or {}
+            if v.get("id") is not None and c.get("x") is not None:
+                poz[str(v["id"])] = (round(float(c["x"]), 2), round(float(c.get("y", 0)), 2))
+        if not imgs:
+            return []
+        await self._klucz()
+        session = self.api._session  # noqa: SLF001
+        folder = self.dir / rid
+        await self.hass.async_add_executor_job(lambda: folder.mkdir(parents=True, exist_ok=True))
+        lista = []
+        for im in imgs:
+            url = im.get("url") or ""
+            m = _NAME.search(url)
+            ts, label = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+            plik = folder / f"{im.get('id')}.jpg"
+            if not plik.exists():
+                try:
+                    async with session.get(url, timeout=30) as r:
+                        enc = await r.read()
+                    jpg = await self.hass.async_add_executor_job(self._odszyfruj, enc)
+                    await self.hass.async_add_executor_job(plik.write_bytes, jpg)
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("Obstacle photo %s: %s", im.get("id"), err)
+                    continue
+            czas = datetime.fromtimestamp(ts / 1e9, timezone.utc).isoformat() if ts > 1e17 else None
+            lista.append({"id": im.get("id"), "etykieta": label,
+                          "nazwa": ETYKIETY.get(label, f"Object {label}"), "czas": czas,
+                          "x": poz.get(str(im.get("id")), (None, None))[0],
+                          "y": poz.get(str(im.get("id")), (None, None))[1],
+                          "mapa": res.get("map_id") or rec.get("map_id"),
+                          "sciezka": f"/api/narwal_cloud/przeszkoda/{rid}/{im.get('id')}.jpg"})
+        lista.sort(key=lambda x: x["czas"] or "", reverse=True)
+        return lista

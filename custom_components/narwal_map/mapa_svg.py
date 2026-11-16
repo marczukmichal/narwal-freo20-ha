@@ -266,7 +266,8 @@ def _furniture(t: int, w: float, h: float) -> str:
 
 def render_svg(m: Any, robot: tuple[float, float, float | None] | None = None,
                trail: list[tuple[float, float]] | None = None, names: dict[int, str] | None = None,
-               pins: list[dict] | None = None, pins_out: list | None = None) -> str:
+               pins: list[dict] | None = None, pins_out: list | None = None,
+               robot_overlay: bool = False) -> str:
     """Returns the SVG. `robot` and `trail` are in grid coordinates (like dock_x/dock_y)."""
     W, H = int(m.width), int(m.height)
     grid = _decode_grid(m.compressed_map, W, H)
@@ -437,8 +438,12 @@ def render_svg(m: Any, robot: tuple[float, float, float | None] | None = None,
                    '<rect x="-27" y="-34" width="54" height="56" rx="12" fill="#fff" stroke="#b9c0ea" stroke-width="3"/>'
                    '<rect x="-12" y="8" width="24" height="5" rx="2.5" fill="#b9c0ea"/></g>')
 
-    # robot
-    if robot:
+    # robot; z robot_overlay rysuje go karta HTML (płynny ruch między odczytami)
+    if robot and robot_overlay and pins_out is not None:
+        rx, ry = G(robot[0], robot[1])
+        pins_out.append({"_robot": {"fx": round((rx * S - vx) / vw, 5), "fy": round((ry * S - vy) / vh, 5),
+                                    "r": round(30 / vw, 5)}})
+    elif robot:
         rx, ry = G(robot[0], robot[1])
         out.append(f'<g transform="translate({rx * S:.0f} {ry * S:.0f})">'
                    '<circle r="30" fill="#6d7df0" fill-opacity=".25"/>'

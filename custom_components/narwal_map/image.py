@@ -192,7 +192,7 @@ class NarwalMapaImage(ImageEntity):
         try:
             pins_out: list = []
             svg = await self.hass.async_add_executor_job(
-                lambda: render_svg(m, robot, trail, pins=pins, pins_out=pins_out))
+                lambda: render_svg(m, robot, trail, pins=pins, pins_out=pins_out, robot_overlay=True))
         except Exception:  # noqa: BLE001
             if not self._failed:
                 _LOGGER.exception("Could not draw the Narwal map")
@@ -215,7 +215,8 @@ class NarwalMapaImage(ImageEntity):
         self._attr_extra_state_attributes = {
             **metadata,
             "proporcje": aspect,
-            "przeszkody": [p for p in pins_out if "_aspect" not in p and "_strefy" not in p],
+            "przeszkody": [p for p in pins_out if not any(k.startswith("_") for k in p)],
+            "robot_na_mapie": next((p["_robot"] for p in pins_out if "_robot" in p), None),
             "strefy_zakazane": next((p["_strefy"] for p in pins_out if "_strefy" in p), []),
             "wirtualne_sciany": next((p["_sciany"] for p in pins_out if "_strefy" in p), []),
         }

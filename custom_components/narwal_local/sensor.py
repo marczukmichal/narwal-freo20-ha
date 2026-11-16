@@ -429,17 +429,23 @@ class NarwalCurrentRoomSensor(NarwalEntity, SensorEntity):
     def _room(self) -> str | None:
         mi = self.coordinator.data.map
         if mi is None:
+            self._attr_extra_state_attributes = {"room_id": None}
             return None
         pose = self.coordinator.live.robot or mi.robot_pose
-        if pose is None:
-            return None
-        room_id = mi.room_at(pose.x, pose.y)
+        room_id = mi.room_at(pose.x, pose.y) if pose is not None else None
+        # room_id lets a card use its own names; cleaning_room_id is what the
+        # robot reports working on (may run ahead of where it is)
+        self._attr_extra_state_attributes = {
+            "room_id": room_id,
+            "cleaning_room_id": self.coordinator.live.zone_id or None,
+        }
         return mi.room_name(room_id) if room_id is not None else None
 
     @callback
     def _update_room(self) -> None:
+        before = self._attr_extra_state_attributes
         room = self._room()
-        if room != self._attr_native_value:  # only write when the room changes
+        if room != self._attr_native_value or before != self._attr_extra_state_attributes:
             self._attr_native_value = room
             self.async_write_ha_state()
 

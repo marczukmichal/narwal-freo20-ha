@@ -179,7 +179,7 @@ TEXT = {
     "Zapisać tę strefę w mapie robota?": "Save this zone to the robot’s map?",
     "Zapisać tę wirtualną ścianę w mapie robota?": "Save this virtual wall to the robot’s map?",
     # ---- obstacles
-    "Przeszkody z ostatniego sprzątania": "Obstacles from the last clean", " zdjęć": " photos",
+    "Przeszkody z ostatniego sprzątania": "Obstacles from the last clean",
     "Robot nie zrobił zdjęć przeszkód.": "The robot took no obstacle photos.",
     "Zaloguj konto Narwal w HA (integracja Narwal Chmura), aby zobaczyć zdjęcia.":
         "Sign in to your Narwal account in HA (Narwal Cloud Companion) to see the photos.",
@@ -261,6 +261,21 @@ TEXT = {
     "Łączenie dźwięku…": "Connecting audio…",
     "' · zdjęcie po sprzątaniu'": "' · photo after cleaning'",
     "', rozpoznana teraz'": "', seen now'",
+    # ---- current cleaning in the header, obstacles per cleaning, camera width lines
+    "Bieżące sprzątanie": "Current cleaning", "Linie szerokości robota": "Robot width lines",
+    "Nie udało się pobrać zdjęć: ": "Could not load photos: ",
+    "Pobieram zdjęcia z chmury Narwal…": "Loading photos from the Narwal cloud…",
+    "Poprzednie sprzątania": "Previous cleanings",
+    "Przeszkody z bieżącego sprzątania": "Obstacles from the current cleaning",
+    "Przeszkody ze sprzątania": "Obstacles from this cleaning",
+    "Robot nie rozpoznał jeszcze przeszkód w tym sprzątaniu.": "The robot has not recognised any obstacles in this cleaning yet.",
+    "Wszystkie zdjęcia": "All photos",
+    "Zdjęcie pojawi się po zakończeniu sprzątania.": "The photo appears when the cleaning finishes.",
+    "zdjęcia pojawią się po zakończeniu · ": "photos appear when it finishes · ",
+    "'przedmiot':'przedmiotów'": "'item':'items'", " wykryć)": " detections)",
+    "`zostało ok. ${Math.round(left)} min`": "`about ${Math.round(left)} min left`",
+    "`trwa ${Math.round(took)} min`": "`${Math.round(took)} min so far`",
+    " razy`": " times`",
     # ---- room names from the cloud (keys are the robot’s English names)
     "'Kuchnia'": "'Kitchen'", "'Salon'": "'Living room'", "'Sypialnia'": "'Bedroom'",
     "'Korytarz'": "'Corridor'", "'Łazienka'": "'Bathroom'",

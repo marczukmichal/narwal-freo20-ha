@@ -45,6 +45,7 @@ class Historia:
         lista = []
         for r in sorted(rekordy, key=lambda x: x.get("start_time") or 0, reverse=True)[:30]:
             lista.append({
+                "rekord": str(r.get("record_id") or ""),
                 "start": _czas(r.get("start_time")),
                 "koniec": _czas(r.get("end_time")),
                 "minuty": round((r.get("duration") or 0) / 60),

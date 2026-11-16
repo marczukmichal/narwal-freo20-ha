@@ -14,6 +14,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -31,6 +32,7 @@ from .const import (
     REPORT_SECONDS,
 )
 from .map_objects import ObjectNames, obstacle_list
+from .track import job_start, pack_points, stitch, unpack_points
 from .protocol.map import DisplayMap, Obstacle
 from .protocol import (
     TOPIC_CLEAN_REPORT,
@@ -120,6 +122,11 @@ class LiveState:
     # gets them after the job, so this is the only live source.
     obstacles: dict[int, Obstacle] = field(default_factory=dict)
     clean_started: float | None = None  # UTC epoch seconds of the job start
+    # The robot's own cleaned track from display_map (field 2), stitched by
+    # its first index; NaN pairs are breaks. Survives reconnects, and with
+    # the store also a Home Assistant restart in the middle of a job.
+    track: list[tuple[float, float]] = field(default_factory=list)
+    zone_id: int = 0  # the room the robot reports cleaning (display_map 4)
 
 
 class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
@@ -154,6 +161,10 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
         self._consumables_due = dt_util.utcnow()
         self._map_due = dt_util.utcnow()
         self._reconnecting = False
+        self._job: float | None = None  # robot time of the job start (timeline)
+        self._store: Store = Store(hass, 1, f"{DOMAIN}.track.{entry.entry_id}")
+        self._restore: dict | None = None
+        self._save_asked = 0.0
 
     @property
     def device_id(self) -> str:
@@ -162,6 +173,10 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
     async def _async_setup(self) -> None:
         """Subscribe to pushes and keep the robot reporting."""
         entry = self.config_entry
+        try:
+            self._restore = await self._store.async_load()
+        except Exception:  # noqa: BLE001 - a broken file only loses the old path
+            _LOGGER.debug("Could not read the saved track", exc_info=True)
         entry.async_on_unload(self.robot.add_push_callback(self._handle_push))
         entry.async_on_unload(self.robot.add_disconnect_callback(self._handle_disconnect))
         entry.async_on_unload(
@@ -214,7 +229,17 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
                 translation_key="communication_error",
                 translation_placeholders={"error": str(err)},
             ) from err
+        if previous is None:
+            self._restore_track(status, timeline)
+        if status.in_clean_task and map_info is not None and map_info.trajectory:
+            # the map holds the whole track of the job: the app draws this
+            # after it reconnects, so a restart loses nothing
+            if len(map_info.trajectory) >= len(self.live.track):
+                self.live.track[:] = map_info.trajectory
+                self.live.version += 1
         self._track_clean_start(previous.status if previous else None, status)
+        if status.in_clean_task and (job := job_start(timeline)) is not None:
+            self._job = job
         data = NarwalData(
             status=status,
             working=previous.working if previous else None,
@@ -408,8 +433,17 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
             live.version += 1
             for listener in list(self._live_listeners):
                 listener()
+        changed = False
+        if display.trajectory and self.data.status.in_clean_task:
+            changed = stitch(live.track, display.trajectory_first, display.trajectory, PATH_MAX_POINTS)
+        if display.zone_id and display.zone_id != live.zone_id:
+            live.zone_id = display.zone_id
+            changed = True
         robot = display.robot
         if robot is None:
+            if changed:
+                self._save_track()
+                self._live_changed()
             return
         live.received_at = time.monotonic()
         point = (robot.x, robot.y)
@@ -417,12 +451,68 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
             live.path.append(point)
             if len(live.path) > PATH_MAX_POINTS:
                 del live.path[: len(live.path) - PATH_MAX_POINTS]
+            changed = True
+        if changed:
+            self._save_track()
         if robot == live.robot:
+            if changed:
+                self._live_changed()
             return
         live.robot = robot
-        live.version += 1
+        self._live_changed()
+
+    @callback
+    def _live_changed(self) -> None:
+        self.live.version += 1
         for listener in list(self._live_listeners):
             listener()
+
+    # --- the cleaned track across restarts ---------------------------------
+
+    def _track_data(self) -> dict:
+        live = self.live
+        return {
+            "saved": time.time(),
+            "job": self._job,
+            "clean_started": live.clean_started,
+            "path": pack_points(live.path),
+            "track": pack_points(live.track),
+        }
+
+    @callback
+    def _save_track(self) -> None:
+        """Written at most every 20 s while the robot moves."""
+        # async_delay_save postpones on every call; pushes come each second,
+        # so ask at most every 20 s with a short delay
+        now = time.monotonic()
+        if self.data is not None and self.data.status.in_clean_task and now - self._save_asked >= 20:
+            self._save_asked = now
+            self._store.async_delay_save(self._track_data, 1)
+
+    @callback
+    def _restore_track(self, status: RobotBaseStatus, timeline: tuple[TimelineEvent, ...]) -> None:
+        """First status after Home Assistant (or this entry) started: if the
+        robot is still in the job we saved, take its path back."""
+        saved, self._restore = self._restore, None
+        self._job = job_start(timeline) if status.in_clean_task else None
+        if not status.in_clean_task:
+            return
+        live = self.live
+        same = False
+        if saved:
+            if self._job is not None and saved.get("job") is not None:
+                same = abs(float(saved["job"]) - self._job) < 5
+            else:  # no timeline yet: trust a recent save
+                same = time.time() - float(saved.get("saved") or 0) < 600
+        if same:
+            live.path[:0] = unpack_points(saved.get("path"))
+            if not live.track:
+                live.track.extend(unpack_points(saved.get("track")))
+            live.clean_started = saved.get("clean_started") or self._job
+            _LOGGER.debug("Restored %d path and %d track points", len(live.path), len(live.track))
+        else:
+            live.clean_started = self._job or time.time()
+        live.version += 1
 
     def _obstacles_from(self, display: DisplayMap) -> bool:
         """Apply the obstacles in a display_map push; True when they changed."""
@@ -460,11 +550,16 @@ class NarwalCoordinator(DataUpdateCoordinator[NarwalData]):
 
     @callback
     def _track_clean_start(self, old: RobotBaseStatus | None, new: RobotBaseStatus) -> None:
-        """Start a fresh path when a cleaning job begins."""
-        if new.in_clean_task and (old is None or not old.in_clean_task):
+        """Start a fresh path when a cleaning job begins. The first status
+        after a start is handled by _restore_track instead: the job may have
+        been running for a while."""
+        if new.in_clean_task and old is not None and not old.in_clean_task:
             self.live.path.clear()
+            self.live.track.clear()
             self.live.obstacles.clear()
+            self.live.zone_id = 0
             self.live.clean_started = time.time()
+            self._job = self.live.clean_started
             self.live.version += 1
             self._map_due = dt_util.utcnow()
 

@@ -305,6 +305,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                      schema=vol.Schema({vol.Required("kod"): vol.All(str, vol.Match(r"^[A-Za-z0-9]{4,32}$"))}))
     if not hass.services.has_service(DOMAIN, "refresh_obstacles"):
         hass.services.async_register(DOMAIN, "refresh_obstacles", refresh_obstacles)
+
+    async def przeszkody_sprzatania(call: ServiceCall):
+        """Obstacle photos of one earlier clean (Historia), fetched on demand so
+        the sensor attributes stay small."""
+        try:
+            return await przeszkody.sprzatanie(call.data["rekord"])
+        except ValueError as err:
+            raise HomeAssistantError(str(err)) from err
+
+    if not hass.services.has_service(DOMAIN, "przeszkody_sprzatania"):
+        hass.services.async_register(DOMAIN, "przeszkody_sprzatania", przeszkody_sprzatania,
+                                     schema=vol.Schema({vol.Required("rekord"): vol.All(str, vol.Match(r"^\d{1,30}$"))}),
+                                     supports_response=SupportsResponse.ONLY)
     return True
 
 
@@ -334,6 +347,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, "zapytanie")
         hass.services.async_remove(DOMAIN, "start_wideo")
         hass.services.async_remove(DOMAIN, "refresh_obstacles")
+        hass.services.async_remove(DOMAIN, "przeszkody_sprzatania")
         hass.services.async_remove(DOMAIN, "camera_session")
         hass.services.async_remove(DOMAIN, "dzwieki")
         hass.services.async_remove(DOMAIN, "steruj")
