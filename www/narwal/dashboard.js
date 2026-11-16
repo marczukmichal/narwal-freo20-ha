@@ -50,6 +50,7 @@ class NarwalDashboard extends HTMLElement {
   this.rooms=[]; this.selected=new Set(); this.zoom=1;this.pan={x:0,y:0};this.pointers=new Map();this.busy=false;
  }
  connectedCallback(){
+  requestAnimationFrame(()=>this.matchTheme());
   this.menuResizeObserver??=new ResizeObserver(()=>this.positionSettingMenu());this.menuResizeObserver.observe(this);
   this.cameraVisibility??=()=>{if(document.hidden)this.stopCamera();};
   this.driveKeyDown??=e=>this.handleDriveKey(e,true);this.driveKeyUp??=e=>this.handleDriveKey(e,false);
@@ -66,7 +67,8 @@ class NarwalDashboard extends HTMLElement {
   this.config={vacuum:'vacuum.narwal',matter:'vacuum.freo_20',image:'image.vacuum_map',camera:'camera.narwal_camera',tts:'tts.piper',tts_language:'en',...config};
   this.build(); if(this._hass)this.update();
  }
- set hass(hass) {this._hass=hass;if(this.config)this.update();}
+ set hass(hass) {this._hass=hass;this.matchTheme();if(this.config)this.update();}
+ matchTheme(){/* the window is drawn for a dark background; on a light theme it brings its own */const c=getComputedStyle(this).getPropertyValue('--primary-background-color').trim(),m=c.match(/^#([0-9a-f]{6})$/i)||c.match(/^#([0-9a-f]{3})$/i),rgb=m?(m[1].length===3?[...m[1]].map(x=>parseInt(x+x,16)):[0,2,4].map(i=>parseInt(m[1].slice(i,i+2),16))):(c.match(/\d+(\.\d+)?/g)||[]).slice(0,3).map(Number);const light=rgb.length===3&&(0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2])/255>0.6;this.toggleAttribute('light-theme',light);}
  getCardSize(){return 12;}
  state(id){return this._hass?.states[id];}
  available(id){const st=this.state(id);return !!st&&st.state!=='unavailable'&&(id.startsWith('button.')||st.state!=='unknown');}
@@ -92,6 +94,7 @@ class NarwalDashboard extends HTMLElement {
  }
  build(){
   this.shadowRoot.innerHTML=`<style>
+  :host([light-theme]){display:block;background:#1b1f24;border-radius:16px;padding:12px;color:#e8edf1;color-scheme:dark;--primary-text-color:#e8edf1;--secondary-text-color:#adb9c2}
   :host{--muted:#adb9c2;--glass:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.04));--edge:1px solid rgba(255,255,255,.12);--control-height:36px;--control-x:12px;--control-y:6px;--control-radius:12px;--panel-radius:18px;--panel-padding:12px;--gap:8px;--ui-font:12px;--action-width:84px;display:flex;flex-direction:column;height:min(620px,calc(100dvh - 160px));min-height:0;overflow:hidden;color:#f3f5f7;font-family:var(--primary-font-family,-apple-system,BlinkMacSystemFont,Roboto,sans-serif)}
   *{box-sizing:border-box}
   button{font:inherit;font-size:var(--ui-font);line-height:1.25;color:inherit;cursor:pointer;border:var(--edge);background:var(--glass);border-radius:var(--control-radius);min-height:var(--control-height);padding:var(--control-y) var(--control-x);margin:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:background .15s}
@@ -154,7 +157,7 @@ class NarwalDashboard extends HTMLElement {
   viewport.addEventListener('pointermove',e=>{if(!this.pointers.has(e.pointerId))return;this.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});const now=this.geometry();if(this.gesture){this.pan.x+=now.x-this.gesture.x;this.pan.y+=now.y-this.gesture.y;if(now.distance&&this.gesture.distance)this.zoom=Math.max(1,Math.min(5,this.zoom*now.distance/this.gesture.distance));this.transform();}this.gesture=now;});
   const end=e=>{const single=this.pointers.size<=1;this.pointers.delete(e.pointerId);this.gesture=this.geometry();if(e.type==='pointerup'&&single&&this.zoneDraw&&this.tapStart&&Math.hypot(e.clientX-this.tapStart.x,e.clientY-this.tapStart.y)<6){const f=this.mapFraction(e.clientX,e.clientY);if(f){if(this.zoneDraw.pts.length>=2)this.zoneDraw.pts=[];this.zoneDraw.pts.push([f.fx,f.fy]);this.drawZonePreview();this.renderPanel();}return;}if(e.type==='pointerup'&&single&&this.naviPick&&this.tapStart&&Math.hypot(e.clientX-this.tapStart.x,e.clientY-this.tapStart.y)<6)this.naviTo(e.clientX,e.clientY);};
   viewport.addEventListener('pointerup',end);viewport.addEventListener('pointercancel',end);viewport.addEventListener('lostpointercapture',end);
-  const img=this.shadowRoot.querySelector('img');img.addEventListener('error',()=>{this.shadowRoot.querySelector('.no-map').hidden=false;});img.addEventListener('load',()=>{this.shadowRoot.querySelector('.no-map').hidden=true;});
+  const img=this.shadowRoot.querySelector('img');img.addEventListener('error',()=>{img.style.visibility='hidden';this.shadowRoot.querySelector('.no-map').hidden=false;});img.addEventListener('load',()=>{img.style.visibility='';this.shadowRoot.querySelector('.no-map').hidden=true;});
   this.renderPanel();
  }
  geometry(){const p=[...this.pointers.values()];if(!p.length)return null;return {x:p.reduce((s,v)=>s+v.x,0)/p.length,y:p.reduce((s,v)=>s+v.y,0)/p.length,distance:p.length>1?Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y):0};}
