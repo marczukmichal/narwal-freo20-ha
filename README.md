@@ -65,7 +65,9 @@ Quick start:
 4. Camera (HA OS only): copy `addons/narwal_kamera` to the local add-ons folder,
    install and start **Narwal kamera**.
 5. Add `/local/narwal/dashboard.js` as a JavaScript module resource and add the
-   card from [examples/card.yaml](examples/card.yaml).
+   card from [examples/card.yaml](examples/card.yaml), or paste the whole
+   [examples/dashboard.yaml](examples/dashboard.yaml) into a new dashboard's raw
+   configuration editor.
 
 Only administrators can start the camera, reset parts, edit zones or drive the robot.
 

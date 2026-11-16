@@ -1,0 +1,19 @@
+# A whole dashboard with the robot window as a full-width page.
+# Settings -> Dashboards -> Add dashboard -> "New dashboard from scratch",
+# open it -> Edit -> three dots -> Raw configuration editor, paste this, Save.
+# Add /local/narwal/dashboard.js as a JavaScript module resource first.
+title: Vacuum
+views:
+  - title: Vacuum
+    path: vacuum
+    icon: mdi:robot-vacuum
+    type: panel
+    cards:
+      - type: custom:narwal-dashboard
+        vacuum: vacuum.narwal
+        matter: vacuum.freo_20
+        image: image.vacuum_map
+        camera: camera.narwal_camera
+        schedule: schedule.vacuum_schedule
+        tts: tts.piper
+        tts_language: en

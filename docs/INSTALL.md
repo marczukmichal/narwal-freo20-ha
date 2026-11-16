@@ -108,6 +108,11 @@ tts_language: en
 
 The card is wide. It works best in a **Panel** view or as a popup.
 
+**Or add a ready dashboard:** Settings → Dashboards → **Add dashboard** → *New
+dashboard from scratch*, name it *Vacuum*, open it → Edit → ⋮ → **Raw
+configuration editor**, paste [examples/dashboard.yaml](../examples/dashboard.yaml)
+and save. The resource from step 1 is still needed.
+
 ## 9. Schedule (optional)
 
 1. Settings → Devices & services → Helpers → Create helper → **Schedule**.
