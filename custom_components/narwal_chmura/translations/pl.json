@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konto Narwal",
+        "description": "Wpisz email i hasło do aplikacji Narwal. Hasło nie jest zapisywane, HA trzyma tylko token sesji.",
+        "data": {"email": "Email", "password": "Hasło", "region": "Region (eu dla Polski)"}
+      }
+    },
+    "error": {
+      "invalid_auth": "Zły email lub hasło",
+      "cannot_connect": "Brak połączenia z chmurą Narwal"
+    },
+    "abort": {"already_configured": "Konto już dodane, token odświeżony", "reauth_successful": "Zalogowano ponownie"}
+  }
+}

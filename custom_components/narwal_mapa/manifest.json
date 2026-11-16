@@ -1,0 +1,10 @@
+{
+  "domain": "narwal_mapa",
+  "name": "Narwal map (app style)",
+  "after_dependencies": ["narwal_local"],
+  "codeowners": [],
+  "documentation": "https://github.com/REPLACE_ME/narwal-freo20-ha",
+  "iot_class": "local_push",
+  "requirements": [],
+  "version": "1.0.0"
+}

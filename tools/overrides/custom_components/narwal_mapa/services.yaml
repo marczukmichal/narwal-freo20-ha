@@ -1,0 +1,23 @@
+strefa:
+  name: No-go zone or virtual wall
+  description: Adds or deletes a no-go zone or virtual wall in the robot's map. Coordinates are fractions of the drawn map image (0 to 1).
+  fields:
+    rodzaj:
+      name: Kind
+      description: no_entry, no_vacuum, no_mop, or sciana (virtual wall).
+      required: true
+      selector:
+        select:
+          options: [no_entry, no_vacuum, no_mop, sciana]
+    f:
+      name: Points
+      description: "[x1, y1, x2, y2] as fractions of the map image."
+      selector:
+        object:
+    usun:
+      name: Delete id
+      selector:
+        number:
+          min: 0
+          max: 100000
+          mode: box

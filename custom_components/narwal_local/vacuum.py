@@ -1,0 +1,242 @@
+"""Vacuum entity."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from homeassistant.components.vacuum import (
+    Segment,
+    StateVacuumEntity,
+    VacuumActivity,
+    VacuumEntityFeature,
+)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from .const import DOMAIN
+from .coordinator import NarwalConfigEntry, NarwalCoordinator
+from .entity import NarwalEntity
+from .map_objects import NO_GO_TYPES
+from .protocol import Activity, FanLevel, NoGoZone
+from .protocol.map import Point
+
+PARALLEL_UPDATES = 1
+
+FAN_SPEEDS: dict[FanLevel, str] = {
+    FanLevel.MUTE: "mute",
+    FanLevel.NORMAL: "normal",
+    FanLevel.STRONG: "strong",
+    FanLevel.DEEP: "deep",
+    FanLevel.SUPER: "super",
+}
+FAN_LEVELS = {name: level for level, name in FAN_SPEEDS.items()}
+
+ACTIVITIES: dict[Activity, VacuumActivity] = {
+    Activity.CLEANING: VacuumActivity.CLEANING,
+    Activity.DOCKED: VacuumActivity.DOCKED,
+    Activity.IDLE: VacuumActivity.IDLE,
+    Activity.PAUSED: VacuumActivity.PAUSED,
+    Activity.RETURNING: VacuumActivity.RETURNING,
+    Activity.ERROR: VacuumActivity.ERROR,
+}
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: NarwalConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    async_add_entities([NarwalVacuum(entry.runtime_data)])
+
+
+class NarwalVacuum(NarwalEntity, StateVacuumEntity):
+    """The robot itself.
+
+    Rooms of the current map are offered as segments for Home Assistant's
+    vacuum.clean_area; the user maps them to Home Assistant areas once.
+    """
+
+    _attr_name = None
+    _attr_translation_key = "narwal"
+    _attr_supported_features = (
+        VacuumEntityFeature.STATE
+        | VacuumEntityFeature.START
+        | VacuumEntityFeature.PAUSE
+        | VacuumEntityFeature.STOP
+        | VacuumEntityFeature.RETURN_HOME
+        | VacuumEntityFeature.FAN_SPEED
+        | VacuumEntityFeature.LOCATE
+        | VacuumEntityFeature.CLEAN_AREA
+    )
+    _attr_fan_speed_list = list(FAN_SPEEDS.values())
+
+    def __init__(self, coordinator: NarwalCoordinator) -> None:
+        super().__init__(coordinator, "vacuum")
+        self._segments_issue_for: list[Segment] | None = None
+
+    @property
+    def activity(self) -> VacuumActivity:
+        return ACTIVITIES[self.coordinator.data.status.activity]
+
+    @property
+    def fan_speed(self) -> str | None:
+        return FAN_SPEEDS.get(self.coordinator.data.status.fan_level)
+
+    def _segments(self) -> list[Segment]:
+        mi = self.coordinator.data.map
+        if mi is None:
+            return []
+        return [Segment(id=str(room.id), name=room.display_name) for room in mi.rooms]
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        # Rooms were added, removed or renamed since the user mapped them to
+        # areas: ask (once per change) to update the mapping.
+        if self.registry_entry is not None and (seen := self.last_seen_segments) is not None:
+            current = self._segments()
+            if current and current != seen and current != self._segments_issue_for:
+                self._segments_issue_for = current
+                self.async_create_segments_issue()
+        super()._handle_coordinator_update()
+
+    async def async_get_segments(self) -> list[Segment]:
+        return self._segments()
+
+    async def async_clean_segments(self, segment_ids: list[str], **kwargs: Any) -> None:
+        rooms = [int(segment_id) for segment_id in segment_ids]
+        await self._start(rooms)
+
+    async def async_clean_rooms(self, rooms: list[int], repeats: int = 1) -> None:
+        """Clean the robot's rooms by id, in this order (the map card's room
+        selection; vacuum.clean_area does the same with Home Assistant areas)."""
+        mi = self.coordinator.data.map
+        known = {r.id for r in mi.rooms} if mi else set()
+        if unknown := [r for r in rooms if r not in known]:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_rooms",
+                translation_placeholders={"rooms": ", ".join(map(str, unknown))},
+            )
+        await self.coordinator.async_command(
+            self.coordinator.robot.start_clean(rooms, mode=self.coordinator.clean_mode, count=repeats)
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_clean_zone(self, zones: list[list[float]], repeats: int = 1) -> None:
+        """Clean rectangles given as [x1, y1, x2, y2] in millimetres in the
+        map's frame (see the map image's calibration_points)."""
+        mi = self.coordinator.data.map
+        if mi is None:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_map")
+        rects = []
+        for zone in zones:
+            x1, y1, x2, y2 = (v / 1000 for v in zone)
+            a, b = mi.world_to_cell(Point(x1, y1)), mi.world_to_cell(Point(x2, y2))
+            outside = (
+                max(a.col, b.col) <= 0
+                or min(a.col, b.col) >= mi.width
+                or max(a.row, b.row) <= 0
+                or min(a.row, b.row) >= mi.height
+            )
+            gx1, gy1, gx2, gy2 = mi.world_rect_to_grid(x1, y1, x2, y2)
+            if outside or gx1 == gx2 or gy1 == gy2:
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN,
+                    translation_key="zone_outside_map" if outside else "zone_too_small",
+                    translation_placeholders={"zone": str([round(v) for v in zone])},
+                )
+            rects.append((x1, y1, x2, y2))
+        await self.coordinator.async_command(
+            self.coordinator.robot.clean_zones(
+                rects, mode=self.coordinator.clean_mode, count=repeats, map_info=mi
+            )
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_add_no_go_zones(self, zones: list[list[float]], type: str = "no_entry") -> None:
+        """Add no-go zones, [x1, y1, x2, y2] in millimetres each."""
+        kind = next(k for k, name in NO_GO_TYPES.items() if name == type)
+        add = []
+        for zone in zones:
+            x1, y1, x2, y2 = (v / 1000 for v in zone)
+            if x1 == x2 or y1 == y2:
+                raise ServiceValidationError(
+                    translation_domain=DOMAIN,
+                    translation_key="zone_too_small",
+                    translation_placeholders={"zone": str([round(v) for v in zone])},
+                )
+            add.append(NoGoZone(x1, y1, x2, y2, kind))
+        await self.coordinator.async_edit_no_go_zones(add=add)
+
+    async def async_delete_no_go_zones(self, ids: list[int] | None = None) -> None:
+        """Delete the no-go zones with these ids (see the map image's
+        no_go_zones), or all of them."""
+        mi = self.coordinator.data.map
+        existing = [fa.id for fa in mi.forbiddens] if mi else []
+        ids = existing if ids is None else ids
+        if missing := [i for i in ids if i not in existing]:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_no_go_zones",
+                translation_placeholders={"ids": ", ".join(map(str, missing))},
+            )
+        if ids:
+            await self.coordinator.async_edit_no_go_zones(delete=ids)
+
+    async def async_add_virtual_walls(self, walls: list[list[float]]) -> None:
+        """Add virtual walls, [x1, y1, x2, y2] in millimetres each."""
+        try:
+            await self.coordinator.async_edit_virtual_walls(
+                add=[tuple(v / 1000 for v in w) for w in walls])
+        except ValueError as err:
+            raise ServiceValidationError(str(err)) from err
+
+    async def async_delete_virtual_walls(self, ids: list[int] | None = None) -> None:
+        """Delete the virtual walls with these ids, or all of them."""
+        mi = self.coordinator.data.map
+        existing = [w.id for w in mi.virtual_walls] if mi else []
+        ids = existing if ids is None else ids
+        if missing := [i for i in ids if i not in existing]:
+            raise ServiceValidationError(f"Unknown walls: {missing}")
+        if ids:
+            await self.coordinator.async_edit_virtual_walls(delete=ids)
+
+    async def async_start(self) -> None:
+        """Resume a paused clean, otherwise clean every room."""
+        if self.coordinator.data.status.activity is Activity.PAUSED:
+            await self.coordinator.async_command(self.coordinator.robot.resume())
+            await self.coordinator.async_request_refresh()
+            return
+        await self._start(None)
+
+    async def _start(self, rooms: list[int] | None) -> None:
+        await self.coordinator.async_command(
+            self.coordinator.robot.start_clean(rooms, mode=self.coordinator.clean_mode)
+        )
+        await self.coordinator.async_request_refresh()
+
+    async def async_stop(self, **kwargs: Any) -> None:
+        await self.coordinator.async_command(self.coordinator.robot.stop())
+        await self.coordinator.async_request_refresh()
+
+    async def async_locate(self, **kwargs: Any) -> None:
+        await self.coordinator.async_command(self.coordinator.robot.locate())
+
+    async def async_pause(self) -> None:
+        await self.coordinator.async_command(self.coordinator.robot.pause())
+        await self.coordinator.async_request_refresh()
+
+    async def async_return_to_base(self, **kwargs: Any) -> None:
+        await self.coordinator.async_command(self.coordinator.robot.dock())
+        await self.coordinator.async_request_refresh()
+
+    async def async_set_fan_speed(self, fan_speed: str, **kwargs: Any) -> None:
+        if (level := FAN_LEVELS.get(fan_speed)) is None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_fan_speed",
+                translation_placeholders={"fan_speed": fan_speed},
+            )
+        await self.coordinator.async_command(self.coordinator.robot.set_fan_level(level))
+        await self.coordinator.async_request_refresh()

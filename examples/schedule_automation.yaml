@@ -1,0 +1,22 @@
+# Optional: clean the whole home in Auto mode when a window starts in the
+# schedule helper "Vacuum schedule" (schedule.vacuum_schedule). Only when docked.
+- id: narwal_scheduled_clean
+  alias: "Vacuum: scheduled clean"
+  triggers:
+    - trigger: state
+      entity_id: schedule.vacuum_schedule
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.narwal_docked
+      state: "on"
+  actions:
+    - action: select.select_option
+      target:
+        entity_id: select.freo_20_clean_mode
+      data:
+        option: Auto
+    - action: vacuum.start
+      target:
+        entity_id: vacuum.freo_20
+  mode: single

@@ -1,0 +1,16 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Narwal account",
+        "description": "Enter the email and password you use in the Narwal app. The password is not stored; Home Assistant keeps only the session token.",
+        "data": {"email": "Email", "password": "Password", "region": "Region"}
+      }
+    },
+    "error": {
+      "invalid_auth": "Wrong email or password",
+      "cannot_connect": "Cannot reach the Narwal cloud"
+    },
+    "abort": {"already_configured": "Account already added, token refreshed", "reauth_successful": "Signed in again"}
+  }
+}

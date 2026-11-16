@@ -1,0 +1,85 @@
+zapytanie:
+  name: Cloud request (debug)
+  description: Sends one request with the stored session and returns the response with token fields removed. Administrators only. Used by the camera add-on to request robot audio.
+  fields:
+    path: {required: true, selector: {text: {}}}
+    method: {selector: {select: {options: [GET, POST]}}}
+    body: {selector: {object: {}}}
+    params: {selector: {object: {}}}
+    device_id: {selector: {text: {}}}
+    product_id: {selector: {text: {}}}
+start_wideo:
+  name: Camera session parameters
+  description: Returns the Agora session for the camera add-on. Device and product default to the robot found on the account.
+  fields:
+    device_id: {selector: {text: {}}}
+    product_id: {selector: {text: {}}}
+refresh_obstacles:
+  name: Refresh obstacle photos
+  description: Fetch the latest obstacle photos from the Narwal cloud now.
+
+camera_session:
+  name: Camera session
+  description: Explicit start, keep-alive or stop of the preview. Does not drive the robot or control audio.
+  fields:
+    action:
+      required: true
+      selector:
+        select:
+          options: [start, heartbeat, stop, status]
+    mode:
+      selector:
+        select:
+          options: [video, audio]
+    session_id:
+      selector:
+        text:
+
+dzwieki:
+  name: Pet sounds
+  description: List of the dog and cat calls stored on the robot.
+odtworz_dzwiek:
+  name: Play sound
+  description: The robot plays one call from the list (it does not move).
+  fields:
+    plik:
+      required: true
+      example: /userdata/usr/data/voice/voiceO27.mp3
+      selector:
+        text:
+zeruj_czesc:
+  name: Part replaced
+  description: Resets the part's hour counter in the Narwal cloud, like the Reset button in the app.
+  fields:
+    kod:
+      required: true
+      example: 9DRtob0Hbi
+      selector:
+        text:
+szukaj_zwierzaka:
+  name: Find pet
+  description: The robot leaves the dock and searches the home for the pet. It moves.
+steruj:
+  name: Drive robot
+  description: Driving from the camera preview, as in the app. Works only while video is on. tryb = drive mode (wylacz off, joystick, cicho quiet, normalnie normal, mocno strong, dokladnie meticulous, max); ruch = move (kierunek przod/tyl/lewo/prawo/stop = forward/back/left/right/stop); jedz_do = go to point fx/fy; anuluj = cancel.
+  fields:
+    akcja: {required: true, selector: {select: {options: [tryb, ruch, jedz_do, anuluj]}}}
+    tryb: {selector: {select: {options: [wylacz, joystick, cicho, normalnie, mocno, dokladnie, max]}}}
+    kierunek: {selector: {select: {options: [przod, tyl, lewo, prawo, stop]}}}
+    predkosc: {selector: {number: {min: 10, max: 100}}}
+    fx: {selector: {number: {min: 0, max: 1, step: 0.001}}}
+    fy: {selector: {number: {min: 0, max: 1, step: 0.001}}}
+sprzataj_pokoje:
+  name: Clean rooms
+  description: Starts a room clean with explicit settings over the local link (narwal_local). rooms is a list of room ids in cleaning order, or "all".
+  fields:
+    rooms: {required: true, selector: {object: {}}}
+    mode: {required: true, selector: {select: {options: [vacuum, mop, vacuum_then_mop, vacuum_and_mop]}}}
+    suction: {required: true, selector: {select: {options: [ai, quiet, standard, strong, super_powerful]}}}
+    water: {required: true, selector: {select: {options: [dry, normal, wet]}}}
+    mop_strength: {required: true, selector: {select: {options: [normal, high]}}}
+    passes: {required: true, selector: {number: {min: 1, max: 3}}}
+    route: {selector: {select: {options: [standard, meticulous]}}}
+sprawdz_sprzatanie:
+  name: Check clean request
+  description: Builds sample clean requests and compares them with narwal_local's builder. Nothing is sent to the robot.

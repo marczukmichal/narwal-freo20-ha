@@ -1,0 +1,98 @@
+"""Binary sensors."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from .coordinator import NarwalConfigEntry, NarwalCoordinator, NarwalData
+from .entity import NarwalEntity
+from .protocol import ChargingStatus
+from .protocol.models import Activity, robot_activity
+from .protocol.enums import CleanWaterTankState, DetergentState, SewageTankState
+
+PARALLEL_UPDATES = 0
+
+
+@dataclass(frozen=True, kw_only=True)
+class NarwalBinarySensorDescription(BinarySensorEntityDescription):
+    value_fn: Callable[[NarwalData], bool | None]
+    exists_fn: Callable[[NarwalData], bool] = lambda _: True
+
+
+BINARY_SENSORS: tuple[NarwalBinarySensorDescription, ...] = (
+    NarwalBinarySensorDescription(
+        key="clean_water_empty",
+        translation_key="clean_water_empty",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: d.status.clean_water is CleanWaterTankState.EMPTY,
+        exists_fn=lambda d: d.status.has_field(23),
+    ),
+    NarwalBinarySensorDescription(
+        key="dirty_water_full",
+        translation_key="dirty_water_full",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: d.status.dirty_water is SewageTankState.FULL_OR_MISSING,
+        exists_fn=lambda d: d.status.has_field(24),
+    ),
+    NarwalBinarySensorDescription(
+        key="detergent_low",
+        translation_key="detergent_low",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: d.status.detergent in (DetergentState.EMPTY, DetergentState.RUNNING_OUT),
+        exists_fn=lambda d: d.status.has_field(12),
+    ),
+    NarwalBinarySensorDescription(
+        key="docked",
+        translation_key="docked",
+        value_fn=lambda d: robot_activity(d.status) is Activity.DOCKED,
+    ),
+    NarwalBinarySensorDescription(
+        key="charging",
+        device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+        value_fn=lambda d: d.status.charging_status is ChargingStatus.CHARGING,
+    ),
+    NarwalBinarySensorDescription(
+        key="maintenance_needed",
+        translation_key="maintenance_needed",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda d: (
+            bool(d.consumables.maintain_items or d.consumables.replace_items)
+            if d.consumables
+            else None
+        ),
+    ),
+)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: NarwalConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    coordinator = entry.runtime_data
+    async_add_entities(
+        NarwalBinarySensor(coordinator, d) for d in BINARY_SENSORS if d.exists_fn(coordinator.data)
+    )
+
+
+class NarwalBinarySensor(NarwalEntity, BinarySensorEntity):
+    entity_description: NarwalBinarySensorDescription
+
+    def __init__(
+        self, coordinator: NarwalCoordinator, description: NarwalBinarySensorDescription
+    ) -> None:
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def is_on(self) -> bool | None:
+        return self.entity_description.value_fn(self.coordinator.data)

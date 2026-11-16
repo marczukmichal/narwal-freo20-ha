@@ -1,0 +1,14 @@
+name: Narwal kamera
+version: "0.3.0"
+slug: narwal_kamera
+description: Receives the Narwal Freo 20 camera (Agora) and serves it to the narwal_chmura integration
+arch:
+  - amd64
+startup: application
+boot: auto
+init: false
+homeassistant_api: true
+options:
+  device_id: ""
+schema:
+  device_id: str?

@@ -1,0 +1,158 @@
+{
+  "entity": {
+    "button": {
+      "empty_dust_bin": {
+        "default": "mdi:delete-empty"
+      },
+      "wash_mop": {
+        "default": "mdi:water-sync"
+      },
+      "dry_mop": {
+        "default": "mdi:weather-windy"
+      },
+      "start_plan": {
+        "default": "mdi:play-box-outline"
+      },
+      "wash_and_dry_mop": {
+        "default": "mdi:washing-machine"
+      },
+      "dry_dust_bag": {
+        "default": "mdi:weather-windy"
+      },
+      "dry_station_bag": {
+        "default": "mdi:fan"
+      },
+      "continue_clean": {
+        "default": "mdi:play-circle-outline"
+      }
+    },
+    "event": {
+      "clean_finished": {
+        "default": "mdi:robot-vacuum"
+      }
+    },
+    "number": {
+      "volume": {
+        "default": "mdi:volume-high"
+      }
+    },
+    "select": {
+      "carpet_strategy": {
+        "default": "mdi:rug"
+      },
+      "mop_drying": {
+        "default": "mdi:weather-windy"
+      },
+      "mop_wash_frequency": {
+        "default": "mdi:water-sync"
+      },
+      "corner_cleaning": {
+        "default": "mdi:border-radius"
+      },
+      "obstacle_avoidance": {
+        "default": "mdi:sign-direction"
+      },
+      "ambient_light": {
+        "default": "mdi:lightbulb-night"
+      },
+      "map": {
+        "default": "mdi:layers"
+      },
+      "voice_language": {
+        "default": "mdi:account-voice"
+      }
+    },
+    "sensor": {
+      "position": {
+        "default": "mdi:map-marker-radius"
+      },
+      "battery_health": {
+        "default": "mdi:battery-heart-variant"
+      },
+      "battery_cycles": {
+        "default": "mdi:battery-sync"
+      },
+      "battery_capacity": {
+        "default": "mdi:battery-high"
+      },
+      "mop_drying_remaining": {
+        "default": "mdi:timer-sand"
+      },
+      "last_event": {
+        "default": "mdi:timeline-text-outline"
+      }
+    },
+    "switch": {
+      "do_not_disturb": {
+        "default": "mdi:minus-circle-outline",
+        "state": {
+          "off": "mdi:minus-circle-off-outline"
+        }
+      },
+      "child_lock": {
+        "default": "mdi:lock",
+        "state": {
+          "off": "mdi:lock-open-variant"
+        }
+      },
+      "dust_gathering": {
+        "default": "mdi:delete-restore"
+      },
+      "quiet_dust_gathering": {
+        "default": "mdi:volume-low"
+      },
+      "dry_dust_bag": {
+        "default": "mdi:weather-windy"
+      },
+      "auto_add_detergent": {
+        "default": "mdi:bottle-tonic-plus"
+      },
+      "hot_water_wash": {
+        "default": "mdi:water-thermometer"
+      },
+      "heavy_dirt_deep_clean": {
+        "default": "mdi:spray-bottle"
+      },
+      "pet_mode": {
+        "default": "mdi:paw"
+      },
+      "carpet_first": {
+        "default": "mdi:rug"
+      },
+      "carpet_deep_clean": {
+        "default": "mdi:rug"
+      },
+      "station_light": {
+        "default": "mdi:lightbulb",
+        "state": {
+          "off": "mdi:lightbulb-off"
+        }
+      }
+    },
+    "time": {
+      "do_not_disturb_start": {
+        "default": "mdi:bell-sleep"
+      },
+      "do_not_disturb_end": {
+        "default": "mdi:bell-ring"
+      }
+    }
+  },
+  "services": {
+    "add_no_go_zones": {
+      "service": "mdi:cancel"
+    },
+    "clean_rooms": {
+      "service": "mdi:floor-plan"
+    },
+    "clean_zone": {
+      "service": "mdi:selection-drag"
+    },
+    "delete_no_go_zones": {
+      "service": "mdi:delete-outline"
+    },
+    "reset_consumables": {
+      "service": "mdi:restore"
+    }
+  }
+}

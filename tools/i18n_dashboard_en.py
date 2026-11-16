@@ -1,0 +1,263 @@
+"""English UI text for the window (www/narwal/dashboard.js, camera-audio.js).
+
+TEXT keys are replaced longest first. A key with a space, a Polish letter or
+punctuation is replaced anywhere; a single plain word only where it stands
+alone between quotes or tags, so code names such as `busyRobot` are safe.
+IDS maps entity ids that differ in the English build (English entity names).
+CODE holds small exact code changes. Every key must still match the source.
+"""
+
+IDS = {
+    "sensor.narwal_czesci": "sensor.narwal_parts",
+    "sensor.narwal_przeszkody": "sensor.narwal_obstacles",
+    "sensor.narwal_liczba_sprzatan": "sensor.narwal_cleaning_count",
+    "sensor.narwal_laczna_sprzatnieta_powierzchnia": "sensor.narwal_total_cleaned_area",
+    "sensor.narwal_laczny_czas_sprzatania": "sensor.narwal_total_cleaning_time",
+    "camera.narwal_kamera": "camera.narwal_camera",
+    "image.mapa_odkurzacza": "image.vacuum_map",
+}
+
+CODE = {
+    "www/narwal/dashboard.js": [
+        ("'pl-PL'", "undefined"),
+        ("normal:'Standardowa',wet:'Wysoka'", "normal:'Standard',wet:'High'"),
+        ('placeholder="GG:MM"', 'placeholder="HH:MM"'),
+        ("'schedule.harmonogram_odkurzacza'", "(this.config.schedule||'schedule.vacuum_schedule')"),
+        ("tts:'tts.piper',", "tts:'tts.piper',tts_language:'en',"),
+    ],
+    "www/narwal/camera-audio.js": [
+        ("find(value=>/^pl(?:[-_]|$)/i.test(value))",
+         "find(value=>{const want=String(this.card.config.tts_language||'en').toLowerCase();"
+         "return value.toLowerCase()===want||value.toLowerCase().startsWith(want+'-')||value.toLowerCase().startsWith(want+'_');})"),
+        ("re:'Mikrofon wymaga HTTPS — otwórz [^']+'",
+         "'The microphone needs HTTPS. Open Home Assistant over https.'"),
+        ("'Piper nie udostępnia polskiego głosu. Wybierz polski głos w ustawieniach Piper.'",
+         "'The TTS engine has no voice for the configured language (tts_language).'"),
+    ],
+}
+
+TEXT = {
+    # ---- tabs, headings, navigation
+    "Sterowanie odkurzaczem": "Vacuum controls", "Widok": "View",
+    "Sprzątanie": "Cleaning", "Stacja": "Dock", "Robot": "Robot", "Historia": "History",
+    "Mapa": "Map", "Przeszkody": "Obstacles", "Zwierzak": "Pet", "Kamera": "Camera",
+    "Odkurzacz": "Vacuum", "Ustawienia": "Settings", "Zadania": "Tasks", "Akcje": "Actions",
+    "Wróć": "Back", "Gotowe": "Ready", "Anuluj": "Cancel", "Potwierdź": "Confirm",
+    "Potwierdzenie": "Confirmation", "Zapisz": "Save", "Usuń": "Delete", "Uruchom": "Start",
+    "Zatrzymaj": "Stop", "Pauza": "Pause", "Wznów": "Resume", "Zakończ": "End", "Sprawdź": "Check",
+    "Ponów": "Retry", "Spróbuj ponownie": "Try again", "Włącz": "On", "Wyłącz": "Off",
+    "Włączone": "On", "Wyłączone": "Off", "Wył.": "Off", "Niedostępne": "Unavailable",
+    "Brak danych": "No data", "Stan nieznany": "Unknown state", "W porządku": "OK",
+    "Wymaga uwagi": "Needs attention", "Zmień ›": "Change ›",
+    # ---- map
+    "Mapa mieszkania": "Home map", "Mapa chwilowo niedostępna": "Map temporarily unavailable",
+    "Mapa mieszkania z pokojami, meblami i trasą robota": "Home map with rooms, furniture and the robot’s path",
+    "Mapa mieszkania. Użyj przycisków powiększenia lub gestu dwoma palcami.":
+        "Home map. Use the zoom buttons or a two-finger gesture.",
+    "Przeciągnij, aby przesunąć": "Drag to move", "Oddal mapę": "Zoom out", "Przybliż mapę": "Zoom in",
+    "Dopasuj": "Fit", "Przeszkody na mapie": "Obstacles on the map", "Przeszkoda": "Obstacle",
+    "Bieżąca pozycja robota": "Current robot position", "Ostatnia znana pozycja": "Last known position",
+    "Pozycja robota niedostępna": "Robot position unavailable",
+    "Brak danych o położeniu robota": "No robot position data",
+    "Kliknij w obrębie mapy.": "Click inside the map.",
+    # ---- status and dock banner
+    "Sprawdzam położenie robota…": "Checking the robot’s position…", "Powrót do stacji": "Return to dock",
+    "Robot w stacji": "Robot in the dock", "Robot poza stacją": "Robot away from the dock",
+    "Robot wraca do stacji": "Robot is returning to the dock", "Na stacji": "Docked",
+    "Sprząta": "Cleaning", "Wstrzymany": "Paused", "Wraca do stacji": "Returning to dock",
+    "Poza stacją": "Away from dock", "Robot zgłasza błąd:": "The robot reports an error:",
+    "Bateria —": "Battery —", "`Bateria ": "`Battery ", "Brak łączności": "Offline",
+    "Do stacji": "To dock", "Znajdź odkurzacz": "Locate vacuum", "Sprzątanie trwa": "Cleaning in progress",
+    # ---- cleaning page
+    "Gdzie sprzątamy?": "Where to clean?", "Jak sprzątamy?": "How to clean?",
+    "Rodzaj sprzątania": "Cleaning mode", "Całe mieszkanie": "Whole home", "całe mieszkanie": "whole home",
+    "Wybierz pokoje ›": "Choose rooms ›", "Wybrane pokoje: ": "Selected rooms: ", "Wszystkie": "All",
+    "Możesz wybrać kilka pokojów. Robot sprząta je w kolejności klikania (numer przy pokoju).":
+        "You can pick several rooms. The robot cleans them in the order you click (the number on each room).",
+    "Nie udało się pobrać pokojów.": "Could not load the rooms.",
+    "Freo Mind dobierze sposób sprzątania. Auto obejmuje całe mieszkanie.":
+        "Freo Mind picks how to clean. Auto covers the whole home.",
+    "Tryb Auto nie jest dostępny": "Auto mode is not available",
+    "Przed nowym sprzątaniem robot musi wrócić na stację.": "The robot must return to the dock before a new clean.",
+    "Odkurzanie": "Vacuum", "Mopowanie": "Mop", "Oba": "Both",
+    "Odkurzanie i mopowanie": "Vacuum and mop", "Najpierw odkurzanie, potem mop": "Vacuum then mop",
+    "Najpierw kurz, potem mop": "Vacuum first, then mop", "Jednocześnie": "Together",
+    "Moc i woda": "Suction and water", "Dokładność i cykle ›": "Precision and cycles ›",
+    "Dokładność sprzątania": "Cleaning precision",
+    "Ustawienia sprzątania ›": "Cleaning settings ›", "Ustawienia sprzątania": "Cleaning settings",
+    "Strefy zakazane i ściany ›": "No-go zones and walls ›", "Strefy zakazane i ściany": "No-go zones and walls",
+    "Sprzątaj": "Clean", "Rozpocząć ": "Start ", "Robot dobierze ustawienia.": "The robot picks the settings.",
+    "Ssanie: ": "Suction: ", "Woda: ": "Water: ", "Przejazdy: ": "Cleaning cycles: ",
+    "Robot nie zaczął sprzątać:": "The robot did not start cleaning:",
+    "Harmonogram (Auto, całe mieszkanie): ": "Schedule (Auto, whole home): ", "nie ustawiono": "not set",
+    # ---- cleaning fields (app wording)
+    "Siła ssania": "Suction", "Ilość wody": "Mopping humidity", "Wilgotność mopa": "Mopping humidity",
+    "Intensywność mopowania": "Mop intensity", "Liczba cykli": "Cleaning cycles",
+    "Dokładność pokrycia": "Coverage precision",
+    "1 cykl": "1 cycle", "2 cykle": "2 cycles", "3 cykle": "3 cycles",
+    "Auto / AI": "Smart", "Cicha": "Quiet", "Standardowa": "Normal", "Mocna": "Strong",
+    "Bardzo mocna": "Super strong", "Lekko sucho": "Slightly dry", "Standardowo": "Standard",
+    "Dużo": "High", "Intensywna": "Intensive",
+    "Powtórzenia to dodatkowa opcja HA z protokołu robota. Freo Mind dobiera je samodzielnie.":
+        "Repeats are an extra HA option from the robot protocol. Freo Mind picks them itself.",
+    "Preferencje Freo Mind": "Freo Mind preferences",
+    "Preferencje Freo Mind są chwilowo niedostępne.": "Freo Mind preferences are temporarily unavailable.",
+    "Zmiany są zapisywane od razu w robocie. Smart dobiera parametr automatycznie. „Lekko sucho” ogranicza wilgoć na podłodze, także przy zwierzętach.":
+        "Changes are saved to the robot right away. Smart picks the value automatically. “Slightly dry” keeps the floor drier, also around pets.",
+    # ---- settings
+    "Blokada dziecięca": "Child lock", "Tryb dla zwierząt": "Pet mode", "Tryb wysokogórski": "Plateau mode",
+    "Wyłączanie przy rozładowaniu": "Auto power off",
+    "Freo Mind: intensywnie na dużych zabrudzeniach": "Freo Mind: deep clean heavy dirt",
+    "Mycie mopa gorącą wodą": "Hot water mop washing",
+    "Automatyczna dezynfekcja pojemnika i worka": "Auto dust box and bag disinfection",
+    "Automatyczne opróżnianie": "Auto-empty", "Ciche opróżnianie": "Quiet auto-empty",
+    "Język komunikatów": "Voice language", "Dywany": "Carpets", "Unikanie przeszkód": "Obstacle avoidance",
+    "Czyszczenie narożników": "Corner cleaning", "Ponowne mycie mopa": "Mop rewash",
+    "Częstotliwość mycia mopa": "Mop washing frequency", "Intensywność suszenia mopa": "Mop drying",
+    "Częstotliwość opróżniania": "Auto-empty frequency", "Poziom opróżniania": "Auto-empty level",
+    "Domyślny tryb przycisku na stacji": "Default mode for the dock button",
+    "Co 15 m²": "Every 15 m²", "Co 20 m²": "Every 20 m²", "Co 30 m²": "Every 30 m²",
+    "Po każdym pokoju": "After each room", "Większa siła ssania": "Boost suction",
+    "Przejeżdżaj bez czyszczenia": "Cross without cleaning", "Odkurzaj i mopuj jak podłogę": "Clean like the floor",
+    "Omijaj dywany": "Avoid carpets", "Cicho": "Quiet", "Mocno": "Strong", "Często": "Frequent",
+    "Rzadziej · szybciej": "Less often · faster", "Częściej · dokładniej": "More often · more thorough",
+    "Wysuwany mop": "Extending mop", "Obracaj robota": "Turn the robot",
+    "Ostrożnie · większy odstęp": "Careful · larger distance", "Lampka nocna": "Night light",
+    "Ciepłe": "Warm", "Fioletowe": "Purple",
+    "Angielski": "English", "Polski": "Polish", "Chiński uproszczony": "Chinese (simplified)",
+    "Chiński tradycyjny": "Chinese (traditional)", "Koreański": "Korean", "Japoński": "Japanese",
+    "Niemiecki": "German", "Hebrajski": "Hebrew", "Włoski": "Italian", "Francuski": "French",
+    "Hiszpański": "Spanish", "Rosyjski": "Russian", "Turecki": "Turkish", "Tajski": "Thai",
+    "Wietnamski": "Vietnamese",
+    "Brak ustawień dostępnych dla tej grupy.": "No settings available for this group.",
+    "Wybudź robota aplikacją Narwal, aby użyć tych ustawień.": "Wake the robot with the Narwal app to use these settings.",
+    "To zapisane preferencje automatycznej pracy stacji. Pojedyncze mycie, suszenie i opróżnianie uruchomisz w zakładce Zadania.":
+        "These are the saved preferences for automatic dock work. Start a single wash, dry or empty in the Tasks tab.",
+    "Głośność komunikatów": "Voice volume",
+    "Głośność komunikatów ustawisz w Ustawieniach → Robot. Część opcji może nie być udostępniona przez robota lokalnie.":
+        "Set the voice volume in Settings → Robot. Some options may not be exposed by the robot locally.",
+    "Mówienie wpisanym tekstem i „Naciśnij i mów” są w zakładce Kamera, po włączeniu podglądu. Dźwięk idzie tym samym połączeniem co obraz.":
+        "Typed speech and push-to-talk are in the Camera tab once the preview is on. Sound uses the same connection as the video.",
+    "Nie przeszkadzać": "Do not disturb", "Cisza w nocy": "Quiet at night",
+    "Ładowanie poza szczytem": "Off-peak charging",
+    "Ładuj do pełna tylko w tych godzinach": "Charge to full only during these hours", "ładowania": "charging",
+    "Początek": "Start", "Koniec": "End",
+    # ---- dock tasks and supplies
+    "Mycie mopa": "Wash mop", "Mycie i suszenie mopa": "Wash and dry mop", "Suszenie mopa": "Dry mop",
+    "Pojemnik i worek": "Dust box and bag", "Opróżnianie pojemnika": "Empty dust box",
+    "Suszenie worka stacji": "Dry dock dust bag", "W trakcie": "Running", "Robot jest zajęty": "The robot is busy",
+    "Uruchomić: ": "Start: ", "Zatrzymać: ": "Stop: ",
+    "Zbiorniki i zużycie": "Tanks and wear", "Czysta woda": "Clean water", "Brudna woda": "Dirty water",
+    "Pojemnik na kurz": "Dust box", "Worek stacji": "Dock dust bag", "Żywotność worka": "Bag life",
+    "Konserwacja": "Maintenance", "Wymiana części": "Part replacement",
+    "Części i materiały": "Parts and consumables", "Zostało ": "Left: ", "Czyść regularnie": "Clean regularly",
+    "Wymieniono": "Replaced", "Wymieniono lub wyczyszczono: ": "Replaced or cleaned: ",
+    "? Licznik godzin tej części zacznie się od nowa, w aplikacji też.":
+        "? The hour counter of this part restarts, in the app too.",
+    "Dane z chmury Narwal, odświeżane co 30 minut.": "Data from the Narwal cloud, refreshed every 30 minutes.",
+    # ---- history
+    "Historia sprzątań": "Cleaning history",
+    "Historia z chmury Narwal jest chwilowo niedostępna.": "History from the Narwal cloud is temporarily unavailable.",
+    "Sprzątania": "Cleans", "Powierzchnia łącznie": "Total area", "Czas łącznie": "Total time",
+    "Ostatnie sprzątania": "Recent cleans", "Brak zapisanych sprzątań.": "No cleans recorded.",
+    " · pokoje: ": " · rooms: ", " · zakończone błędem": " · ended with an error",
+    # ---- zones
+    "Zakaz wjazdu": "No-go zone", "Bez odkurzania": "No vacuuming", "Bez mopowania": "No mopping",
+    "Wirtualna ściana": "Virtual wall", "Strefa": "Zone", "Ściana ": "Wall ",
+    "Kliknij na mapie początek i koniec ściany.": "Click the start and end of the wall on the map.",
+    "Kliknij na mapie dwa przeciwległe rogi strefy.": "Click two opposite corners of the zone on the map.",
+    " Kliknięte: ": " Clicked: ", " z 2.": " of 2.",
+    "Gotowe. Kliknij jeszcze raz na mapie, aby zacząć od nowa.": "Done. Click the map again to start over.",
+    "Zapisz w robocie": "Save to robot",
+    "Wybierz rodzaj, potem zaznacz go na mapie. Na telefonie przejdź do zakładki Mapa, zaznacz i wróć tutaj.":
+        "Choose a kind, then mark it on the map. On a phone, switch to the Map tab, mark it and come back here.",
+    "Na mapie robota": "In the robot’s map", "Brak stref i ścian.": "No zones or walls.",
+    "Strefy i ściany są zapisywane w mapie robota i widać je też w aplikacji Narwal.":
+        "Zones and walls are saved in the robot’s map and also show in the Narwal app.",
+    "Usunąć tę strefę zakazaną z mapy robota?": "Delete this no-go zone from the robot’s map?",
+    "Usunąć tę wirtualną ścianę z mapy robota?": "Delete this virtual wall from the robot’s map?",
+    "Zapisać tę strefę w mapie robota?": "Save this zone to the robot’s map?",
+    "Zapisać tę wirtualną ścianę w mapie robota?": "Save this virtual wall to the robot’s map?",
+    # ---- obstacles
+    "Przeszkody z ostatniego sprzątania": "Obstacles from the last clean", " zdjęć": " photos",
+    "Robot nie zrobił zdjęć przeszkód.": "The robot took no obstacle photos.",
+    "Zaloguj konto Narwal w HA (integracja Narwal Chmura), aby zobaczyć zdjęcia.":
+        "Sign in to your Narwal account in HA (Narwal Cloud Companion) to see the photos.",
+    "Wszystkie: ": "All: ",
+    # ---- pet
+    "🐶 Pies": "🐶 Dog", "🐱 Kot": "🐱 Cat", "Zawołaj zwierzaka": "Call your pet",
+    "Robot odtworzy zawołanie ze swojego głośnika. Nie rusza się przy tym.":
+        "The robot plays the call from its speaker. It does not move.",
+    "Wczytuję dźwięki z robota…": "Loading sounds from the robot…",
+    "Robot nie podał listy dźwięków. Spróbuj ponownie, gdy się obudzi.":
+        "The robot did not send the sound list. Try again when it wakes up.",
+    "Szukaj zwierzaka": "Find pet", "Szukanie zwierzaka": "Pet search", "Tak, szukaj": "Yes, search",
+    "Robot zjedzie ze stacji i będzie jeździł po mieszkaniu, szukając zwierzaka.":
+        "The robot will leave the dock and drive around the home looking for your pet.",
+    # ---- camera, driving, audio
+    "Kamera robota": "Robot camera", "Podgląd na żywo z kamery Narwal": "Live view from the Narwal camera",
+    "Uruchom podgląd": "Start preview", "Kamera jest wyłączona.": "The camera is off.",
+    "Nie udało się połączyć z kamerą": "Could not connect to the camera",
+    "Połącz ponownie": "Reconnect", "Połączenie przerwane": "Connection lost",
+    "POŁĄCZONO": "CONNECTED", "ŁĄCZENIE PONOWNE": "RECONNECTING", "ŁĄCZENIE": "CONNECTING",
+    "BŁĄD POŁĄCZENIA": "CONNECTION ERROR", "WYŁĄCZONA": "OFF", "Łączenie…": "Connecting…",
+    "Tryb tylko dźwięk — obraz nie jest pobierany.": "Audio-only mode, no video is downloaded.",
+    "Łączenie z kamerą — audio pojawi się po połączeniu.": "Connecting to the camera, audio will follow.",
+    "Kamera nie jest połączona. Odsłuch i mikrofon są niedostępne.":
+        "The camera is not connected. Listening and microphone are unavailable.",
+    "Uruchom podgląd, aby włączyć odsłuch lub mikrofon.": "Start the preview to turn on listening or the microphone.",
+    "Odsłuch włącz przyciskiem. Mikrofon działa tylko podczas przytrzymania.":
+        "Turn on listening with the button. The microphone works only while held.",
+    "Głośność odsłuchu": "Listening volume", "Słuchaj": "Listen", "Przytrzymaj, aby mówić": "Hold to talk",
+    "Nie udało się załadować obsługi audio.": "Could not load the audio module.",
+    "Powiedz przez robota": "Say through the robot", "Co robot ma powiedzieć?": "What should the robot say?",
+    "Wpisz tekst do wypowiedzenia": "Type the text to speak", "Zatrzymaj mowę": "Stop speech",
+    "Tekst po polsku · maks. 300 znaków": "Text · max 300 characters",
+    "Funkcja eksperymentalna. Głos generuje Piper w Home Assistant.":
+        "Experimental. The voice is generated by the TTS engine in Home Assistant.",
+    "Jazda": "Driving", "Steruj": "Drive", "Włącz lub wyłącz sterowanie": "Turn driving on or off",
+    "Naciśnij Steruj, aby jeździć": "Press Drive to start driving",
+    "Strzałki: jazda · spacja: stop": "Arrows: drive · space: stop",
+    "Do przodu": "Forward", "Do tyłu": "Back", "Obrót w lewo": "Turn left", "Obrót w prawo": "Turn right",
+    "Prędkość": "Speed", "Wolno": "Slow", "Średnio": "Medium", "Szybko": "Fast",
+    "Normalnie": "Normal", "Dokładnie": "Meticulous",
+    "Sprzątaj w miejscu": "Clean here", "Sprzątaj w miejscu — moc": "Clean here, suction",
+    "Robot sprząta w miejscu.": "The robot is cleaning here.",
+    "Sprzątanie w miejscu zakończone.": "Spot clean finished.", "Sprzątanie w miejscu zakończone": "Spot clean finished",
+    "Do punktu": "To point", "Jedź do punktu na mapie": "Go to a point on the map",
+    "Kliknij cel na mapie": "Click the target on the map", "Wysyłam cel…": "Sending the target…",
+    "Robot jedzie do wskazanego punktu.": "The robot is driving to the point.",
+    "Anuluj jazdę": "Cancel driving", "Jazda anulowana.": "Driving cancelled.",
+    "Robot nie przyjął celu:": "The robot did not accept the target:",
+    "Robot nie przyjął ruchu:": "The robot did not accept the move:",
+    "Nie udało się anulować:": "Could not cancel:", "Nie udało się wyłączyć sterowania:": "Could not turn driving off:",
+    "Nie udało się włączyć sterowania:": "Could not turn driving on:", "Nie udało się zakończyć:": "Could not end:",
+    "Nie udało się wykonać polecenia:": "The command failed:", "Polecenie wysłane.": "Command sent.",
+    "Wysyłanie…": "Sending…",
+    # ---- camera-audio.js
+    "Brak zgody przeglądarki na mikrofon.": "The browser did not allow the microphone.",
+    "Mikrofon działa lokalnie. Odtwarzanie przez robota nie jest potwierdzone. Puść, aby zakończyć.":
+        "The microphone works locally. Playback on the robot is not confirmed. Release to end.",
+    "Mikrofon niedostępny": "Microphone unavailable",
+    "Mikrofon wyciszony po utracie połączenia": "Microphone muted after the connection was lost",
+    "Mówienie zakończone.": "Talking ended.", "Mówisz — puść, aby wyciszyć": "Talking, release to mute",
+    "Nie odebrano audio z robota. Odsłuch nie jest potwierdzony.": "No audio received from the robot. Listening is not confirmed.",
+    "Nie udało się pobrać mowy z Piper": "Could not fetch speech from the TTS engine",
+    "Nie udało się uruchomić odsłuchu": "Could not start listening",
+    "Nie udało się wysłać mowy do robota": "Could not send speech to the robot",
+    "Nieprawidłowy adres dźwięku z Home Assistant": "Invalid sound address from Home Assistant",
+    "Odsłuch włączony.": "Listening on.", "Połączenie audio przerwane": "Audio connection lost",
+    "Połączenie zbyt wolne — mikrofon wyciszony.": "Connection too slow, microphone muted.",
+    "Połączenie zbyt wolne — mówienie przerwane": "Connection too slow, talking stopped",
+    "Przygotowywanie mowy w Piper…": "Preparing speech…", "Uruchamianie mikrofonu…": "Starting the microphone…",
+    "Wpisz najwyżej 300 znaków.": "Type at most 300 characters.", "Wpisz tekst do wypowiedzenia.": "Type the text to speak.",
+    "Wycisz odsłuch": "Mute listening", "Wygenerowana wypowiedź jest zbyt długa": "The generated speech is too long",
+    "Wypowiedź może mieć najwyżej 30 sekund": "Speech can be at most 30 seconds",
+    "Wypowiedź wysłana. Sprawdź, czy robot ją odtworzył.": "Speech sent. Check that the robot played it.",
+    "Wysyłanie mowy do robota — odtwarzanie wymaga potwierdzenia odsłuchem.":
+        "Sending speech to the robot. Confirm playback by listening.",
+    "Łączenie dźwięku…": "Connecting audio…",
+    # ---- room names from the cloud (keys are the robot’s English names)
+    "'Kuchnia'": "'Kitchen'", "'Salon'": "'Living room'", "'Sypialnia'": "'Bedroom'",
+    "'Korytarz'": "'Corridor'", "'Łazienka'": "'Bathroom'",
+}

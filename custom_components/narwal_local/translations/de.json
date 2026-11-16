@@ -1,0 +1,837 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Narwal-Roboter verbinden",
+        "description": "Gib die IP-Adresse des Roboters in deinem Netzwerk ein. Die Steuerung läuft lokal, ein Narwal-Konto ist nicht nötig.",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "IP-Adresse oder Hostname des Roboters, zum Beispiel 192.168.1.50.",
+          "port": "Lokaler WebSocket-Port des Roboters. Auf 9002 lassen."
+        }
+      },
+      "reconfigure": {
+        "title": "Adresse des Roboters ändern",
+        "data": {
+          "host": "Host",
+          "port": "Port"
+        },
+        "data_description": {
+          "host": "Neue IP-Adresse oder neuer Hostname desselben Roboters.",
+          "port": "Lokaler WebSocket-Port des Roboters. Auf 9002 lassen."
+        }
+      },
+      "zeroconf_confirm": {
+        "title": "Narwal-Roboter gefunden",
+        "description": "Den unter {host} gefundenen Narwal-Roboter einrichten? Er wird lokal gesteuert, ein Narwal-Konto ist nicht nötig."
+      }
+    },
+    "error": {
+      "cannot_connect": "Der Roboter ist unter dieser Adresse nicht erreichbar.",
+      "unknown": "Unerwarteter Fehler, Details stehen im Log."
+    },
+    "abort": {
+      "already_configured": "Dieser Roboter ist bereits eingerichtet.",
+      "reconfigure_successful": "Die Adresse wurde aktualisiert.",
+      "wrong_device": "Unter dieser Adresse antwortet ein anderer Roboter.",
+      "cannot_connect": "Der Roboter ist nicht erreichbar."
+    },
+    "flow_title": "Narwal ({host})"
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Grundriss",
+        "description": "Den Roboter auf deinem eigenen Grundriss zeigen: drei Stellen eingeben, die auf beiden zu finden sind, jeweils als Kartenposition in Metern und dieselbe Stelle auf deinem Grundriss (zum Beispiel in Prozent des Bildes). Raumecken eignen sich gut; das Kartenbild nennt die Grenzen jedes Raums in Metern. Alles leer lassen, um es auszuschalten.",
+        "data": {
+          "p1_map_x": "Punkt 1: Karte x (m)",
+          "p1_map_y": "Punkt 1: Karte y (m)",
+          "p1_plan_x": "Punkt 1: Grundriss x",
+          "p1_plan_y": "Punkt 1: Grundriss y",
+          "p2_map_x": "Punkt 2: Karte x (m)",
+          "p2_map_y": "Punkt 2: Karte y (m)",
+          "p2_plan_x": "Punkt 2: Grundriss x",
+          "p2_plan_y": "Punkt 2: Grundriss y",
+          "p3_map_x": "Punkt 3: Karte x (m)",
+          "p3_map_y": "Punkt 3: Karte y (m)",
+          "p3_plan_x": "Punkt 3: Grundriss x",
+          "p3_plan_y": "Punkt 3: Grundriss y"
+        }
+      }
+    },
+    "error": {
+      "incomplete_points": "Alle zwölf Felder ausfüllen oder alle leer lassen.",
+      "points_on_a_line": "Die drei Kartenpunkte liegen auf einer Linie; wähle Stellen, die ein Dreieck bilden."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "maintenance_needed": {
+        "name": "Wartung nötig"
+      },
+      "clean_water_empty": {
+        "name": "Frischwasser leer"
+      },
+      "dirty_water_full": {
+        "name": "Schmutzwasser voll"
+      },
+      "detergent_low": {
+        "name": "Reinigungsmittel knapp"
+      }
+    },
+    "button": {
+      "empty_dust_bin": {
+        "name": "Staubbehälter leeren"
+      },
+      "wash_mop": {
+        "name": "Mopp waschen (während der Reinigung)"
+      },
+      "dry_mop": {
+        "name": "Mopp trocknen"
+      },
+      "start_plan": {
+        "name": "Plan {name} starten"
+      },
+      "wash_and_dry_mop": {
+        "name": "Mopp waschen und trocknen"
+      },
+      "dry_dust_bag": {
+        "name": "Staubbeutel trocknen"
+      },
+      "dry_station_bag": {
+        "name": "Staubbeutel der Station trocknen"
+      },
+      "continue_clean": {
+        "name": "Unterbrochene Reinigung fortsetzen"
+      }
+    },
+    "event": {
+      "clean_finished": {
+        "name": "Reinigung beendet",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "completed": "Abgeschlossen",
+              "stopped": "Abgebrochen",
+              "interrupted": "Unterbrochen"
+            }
+          },
+          "result": {
+            "name": "Ergebnis"
+          },
+          "clean_type": {
+            "name": "Reinigungsart"
+          },
+          "area": {
+            "name": "Fläche"
+          },
+          "duration": {
+            "name": "Dauer"
+          },
+          "progress": {
+            "name": "Fortschritt"
+          },
+          "start": {
+            "name": "Beginn"
+          },
+          "end": {
+            "name": "Ende"
+          }
+        }
+      }
+    },
+    "image": {
+      "map": {
+        "name": "Karte"
+      }
+    },
+    "number": {
+      "volume": {
+        "name": "Lautstärke"
+      }
+    },
+    "select": {
+      "mop_humidity": {
+        "name": "Mopp-Feuchtigkeit",
+        "state": {
+          "dry": "Trocken",
+          "normal": "Normal",
+          "wet": "Nass"
+        }
+      },
+      "clean_mode": {
+        "name": "Reinigungsmodus",
+        "state": {
+          "vacuum_and_mop": "Saugen und wischen",
+          "vacuum": "Saugen",
+          "mop": "Wischen",
+          "vacuum_then_mop": "Erst saugen, dann wischen"
+        }
+      },
+      "carpet_strategy": {
+        "name": "Teppiche",
+        "state": {
+          "boost": "Mit mehr Saugkraft reinigen",
+          "cross": "Überqueren ohne Reinigung",
+          "ignore": "Wie Boden behandeln",
+          "avoid": "Meiden"
+        }
+      },
+      "mop_drying": {
+        "name": "Mopptrocknung",
+        "state": {
+          "quiet": "Leise",
+          "strong": "Stark",
+          "smart": "Intelligent"
+        }
+      },
+      "mop_wash_frequency": {
+        "name": "Moppwäsche",
+        "state": {
+          "efficient": "Seltener (schneller)",
+          "normal": "Normal",
+          "deep": "Häufiger (gründlicher)"
+        }
+      },
+      "corner_cleaning": {
+        "name": "Eckenreinigung",
+        "state": {
+          "flexible_mop": "Ausfahrender Mopp",
+          "turn_robot": "In Ecken drehen",
+          "off": "Aus"
+        }
+      },
+      "obstacle_avoidance": {
+        "name": "Hindernisvermeidung",
+        "state": {
+          "smart": "Intelligent",
+          "careful": "Vorsichtig (mehr Abstand)",
+          "off": "Aus"
+        }
+      },
+      "ambient_light": {
+        "name": "Stimmungslicht",
+        "state": {
+          "off": "Aus",
+          "night_light": "Nachtlicht",
+          "warm": "Warm",
+          "purple": "Lila"
+        }
+      },
+      "map": {
+        "name": "Karte"
+      },
+      "voice_language": {
+        "name": "Sprachausgabe",
+        "state": {
+          "chinese_simplified": "Chinesisch (vereinfacht)",
+          "chinese_traditional": "Chinesisch (traditionell)",
+          "english": "Englisch",
+          "korean": "Koreanisch",
+          "japanese": "Japanisch",
+          "german": "Deutsch",
+          "hebrew": "Hebräisch",
+          "italian": "Italienisch",
+          "french": "Französisch",
+          "spanish": "Spanisch",
+          "russian": "Russisch",
+          "polish": "Polnisch",
+          "turkish": "Türkisch",
+          "thai": "Thailändisch",
+          "vietnamese": "Vietnamesisch"
+        }
+      }
+    },
+    "sensor": {
+      "task": {
+        "name": "Aufgabe",
+        "state": {
+          "idle": "Bereit",
+          "sweep": "Saugen",
+          "mop": "Wischen",
+          "sweep_then_mop": "Erst saugen, dann wischen",
+          "sweep_and_mop": "Saugen und wischen",
+          "smart_clean": "Smarte Reinigung",
+          "build_map": "Kartierung",
+          "parking": "Andocken",
+          "departure": "Verlässt die Station",
+          "recall": "Rückkehr zur Station",
+          "net_config": "Netzwerkeinrichtung",
+          "upgrade": "Firmware-Update",
+          "relocalization": "Ortung",
+          "wash_and_dry_mop": "Mopp waschen und trocknen",
+          "pairing": "Kopplung",
+          "update_map": "Karte aktualisieren",
+          "composite_clean": "Individuelle Reinigung",
+          "debug": "Debug",
+          "dust_gathering": "Staub absaugen",
+          "dry_station_bag": "Stationsbeutel trocknen",
+          "telecontrol": "Fernsteuerung",
+          "maintain_floor": "Bodenpflege",
+          "search_person": "Personensuche",
+          "video_cruise": "Videorundgang",
+          "pump_troubleshooting": "Pumpenprüfung",
+          "robot_sewage_box_pump_troubleshooting": "Abwasserpumpen-Prüfung",
+          "search_pet": "Haustiersuche"
+        }
+      },
+      "charging_status": {
+        "name": "Ladestatus",
+        "state": {
+          "charging": "Lädt",
+          "discharging": "Entlädt",
+          "not_charging": "Lädt nicht",
+          "full": "Voll",
+          "battery_protect": "Akkuschutz"
+        }
+      },
+      "cleaning_progress": {
+        "name": "Reinigungsfortschritt"
+      },
+      "cleaned_area": {
+        "name": "Gereinigte Fläche"
+      },
+      "cleaning_time": {
+        "name": "Reinigungsdauer"
+      },
+      "current_room": {
+        "name": "Aktueller Raum"
+      },
+      "maintenance_due": {
+        "name": "Fällige Wartung"
+      },
+      "replacement_due": {
+        "name": "Fälliger Austausch"
+      },
+      "error_code": {
+        "name": "Fehlercode"
+      },
+      "detected_obstacles": {
+        "name": "Erkannte Hindernisse"
+      },
+      "last_detected": {
+        "name": "Zuletzt erkannt"
+      },
+      "last_clean_end": {
+        "name": "Letzte Reinigung"
+      },
+      "last_clean_area": {
+        "name": "Fläche letzte Reinigung"
+      },
+      "last_clean_duration": {
+        "name": "Dauer letzte Reinigung"
+      },
+      "error": {
+        "name": "Fehler",
+        "state": {
+          "none": "Kein Fehler",
+          "battery": "Akkufehler",
+          "battery_temperature": "Akku zu heiß oder zu kalt",
+          "bumper": "Stoßfänger defekt",
+          "charging": "Ladefehler – Ladekontakte reinigen",
+          "clean_water_empty": "Frischwassertank leer",
+          "clean_water_tank_missing": "Frischwassertank fehlt",
+          "cleaning_base": "Waschwanne nicht eingesetzt",
+          "dirty_water_full": "Schmutzwassertank voll oder fehlt",
+          "dust_box": "Staubbehälter oder Staubbeutel fehlt",
+          "fan": "Sauggebläse-Fehler",
+          "leave_dock": "Kommt nicht aus der Station – Bereich davor freiräumen",
+          "lidar": "Lidar-Fehler",
+          "lifted": "Roboter angehoben oder Räder hängen",
+          "low_battery": "Akku zu schwach zum Fortfahren",
+          "map": "Karte konnte nicht geladen werden",
+          "mop": "Mopp-Modul-Fehler",
+          "no_go_zone": "Roboter steht in einer Sperrzone",
+          "overflow": "Wasserüberlauf in der Station",
+          "positioning": "Roboter findet sich auf der Karte nicht zurecht",
+          "return_to_dock": "Kann nicht zur Station zurückkehren",
+          "roller_brush": "Hauptbürste verheddert oder blockiert",
+          "sensor": "Sensorfehler",
+          "side_brush": "Seitenbürste blockiert",
+          "station": "Stationsfehler",
+          "station_power": "Station ohne Strom oder ohne Kontakt",
+          "stuck": "Roboter steckt fest",
+          "system": "Systemfehler – Roboter neu starten",
+          "task_interrupted": "Aufgabe abgebrochen – erneut starten",
+          "top_cover": "Deckel nicht geschlossen",
+          "water_module": "Fehler am Wasserwechselmodul",
+          "water_module_missing": "Wasserwechselmodul fehlt",
+          "water_pump": "Wasserpumpen-Fehler",
+          "wheel": "Rad blockiert oder rutscht",
+          "unknown": "Unbekannter Fehler (siehe Code)"
+        }
+      },
+      "clean_water_tank": {
+        "name": "Frischwassertank",
+        "state": {
+          "normal": "OK",
+          "empty": "Leer",
+          "not_installed": "Fehlt",
+          "abnormal": "Fehler"
+        }
+      },
+      "dirty_water_tank": {
+        "name": "Schmutzwassertank",
+        "state": {
+          "normal": "OK",
+          "full_or_missing": "Voll oder fehlt",
+          "abnormal": "Fehler"
+        }
+      },
+      "detergent": {
+        "name": "Reinigungsmittel",
+        "state": {
+          "ok": "OK",
+          "not_installed": "Fehlt",
+          "empty": "Leer",
+          "running_out": "Fast leer",
+          "not_used": "Nicht verwendet"
+        }
+      },
+      "dust_box": {
+        "name": "Staubbehälter",
+        "state": {
+          "normal": "OK",
+          "not_installed": "Fehlt",
+          "abnormal": "Fehler",
+          "clean_suggested": "Bitte leeren"
+        }
+      },
+      "dust_bag": {
+        "name": "Staubbeutel",
+        "state": {
+          "ok": "OK",
+          "not_installed": "Fehlt",
+          "replace_suggested": "Wechseln",
+          "abnormal": "Fehler"
+        }
+      },
+      "station_bag": {
+        "name": "Staubbeutel Station",
+        "state": {
+          "ok": "OK",
+          "not_installed": "Fehlt",
+          "replace_suggested": "Wechseln",
+          "abnormal": "Fehler"
+        }
+      },
+      "position": {
+        "name": "Position",
+        "state_attributes": {
+          "x": {
+            "name": "X (m)"
+          },
+          "y": {
+            "name": "Y (m)"
+          },
+          "heading": {
+            "name": "Ausrichtung"
+          },
+          "room": {
+            "name": "Raum"
+          },
+          "floorplan_x": {
+            "name": "Grundriss x"
+          },
+          "floorplan_y": {
+            "name": "Grundriss y"
+          },
+          "floorplan_heading": {
+            "name": "Ausrichtung auf dem Grundriss"
+          }
+        }
+      },
+      "battery_health": {
+        "name": "Akkuzustand"
+      },
+      "battery_cycles": {
+        "name": "Akku-Ladezyklen"
+      },
+      "battery_capacity": {
+        "name": "Akkukapazität"
+      },
+      "battery_temperature": {
+        "name": "Akkutemperatur"
+      },
+      "battery_voltage": {
+        "name": "Akkuspannung"
+      },
+      "battery_current": {
+        "name": "Akkustrom"
+      },
+      "mop_drying_remaining": {
+        "name": "Restzeit Mopptrocknung"
+      },
+      "last_event": {
+        "name": "Letztes Ereignis",
+        "state": {
+          "self_check": "Selbsttest",
+          "departure": "Verlässt die Station",
+          "wash_mop_before_clean": "Moppwäsche vor der Reinigung",
+          "clean": "Reinigung",
+          "unexpected_pause": "Unerwartet pausiert",
+          "finished": "Aufgabe beendet",
+          "zone_not_clean": "Bereich nicht gereinigt",
+          "maintain_floor": "Bodenpflege",
+          "dust_gather": "Staubbehälter wird geleert",
+          "update_map_region": "Karte wird aktualisiert",
+          "start": "Raum begonnen",
+          "finish": "Raum fertig",
+          "navi_to_station": "Fährt zur Station",
+          "wash_mop": "Moppwäsche",
+          "second_clean": "Zweiter Durchgang",
+          "manual_wash_mop_start": "Moppwäsche von Hand gestartet",
+          "manual_wash_mop_cancel": "Moppwäsche von Hand abgebrochen",
+          "manual_adjust_suction": "Saugstärke von Hand geändert",
+          "pause": "Pausiert",
+          "long_time_no_clean": "Lange nicht gereinigt",
+          "heavy_pollution": "Stark verschmutzt",
+          "humidity_exceeds_threshold": "Boden zu feucht",
+          "adjust_pressure": "Mopp-Anpressdruck angepasst",
+          "carpet_clean": "Teppichreinigung",
+          "trap": "Festgefahren",
+          "auto_wash_mop_start": "Moppwäsche gestartet",
+          "parking": "Parkt",
+          "room_change": "Raum gewechselt",
+          "auto_resume": "Selbst fortgesetzt",
+          "exception_solved": "Problem behoben",
+          "compress_dust_bag": "Staubbeutel wird verdichtet",
+          "manual_adjust_mop_humidity": "Mopp-Feuchte von Hand geändert",
+          "start_clean_many_solid_dirty": "Reinigt viel trockenen Schmutz",
+          "start_clean_many_liquid_dirty": "Reinigt viel nassen Schmutz",
+          "start_clean_massive_solid_dirty": "Reinigt starken trockenen Schmutz",
+          "start_clean_massive_liquid_dirty": "Reinigt starken nassen Schmutz",
+          "maintain_floor_start": "Bodenpflege begonnen",
+          "maintain_floor_finish": "Bodenpflege fertig",
+          "clean_visual_dirty_finish": "Sichtbarer Schmutz beseitigt",
+          "heavy_dirty_clean_manual": "Gründliche Reinigung (gewählt)",
+          "heavy_dirty_clean_smart": "Gründliche Reinigung (automatisch)",
+          "change_clean_sequence": "Raumreihenfolge geändert",
+          "resume_task_after_recharge": "Nach dem Laden fortgesetzt",
+          "not_clean": "Ausgelassen",
+          "blocked_room_replenish_clean": "Holt gesperrten Raum nach",
+          "reduce_noise": "Leiser Modus",
+          "found_card": "Karte gefunden",
+          "found_headphones": "Kopfhörer gefunden",
+          "found_glasses": "Brille gefunden",
+          "found_watch": "Uhr gefunden",
+          "found_jewelry": "Schmuck gefunden",
+          "found_banknote": "Geldschein gefunden",
+          "other": "Sonstiges"
+        },
+        "state_attributes": {
+          "events": {
+            "name": "Ereignisse"
+          }
+        }
+      }
+    },
+    "switch": {
+      "do_not_disturb": {
+        "name": "Nicht stören"
+      },
+      "child_lock": {
+        "name": "Kindersicherung"
+      },
+      "dust_gathering": {
+        "name": "Automatische Absaugung"
+      },
+      "quiet_dust_gathering": {
+        "name": "Leise Absaugung"
+      },
+      "dry_dust_bag": {
+        "name": "Staubbeutel trocknen"
+      },
+      "auto_add_detergent": {
+        "name": "Reinigungsmittel automatisch zugeben"
+      },
+      "hot_water_wash": {
+        "name": "Mopp-Wäsche mit heißem Wasser"
+      },
+      "heavy_dirt_deep_clean": {
+        "name": "Starke Verschmutzung gründlich reinigen"
+      },
+      "pet_mode": {
+        "name": "Haustiermodus"
+      },
+      "carpet_first": {
+        "name": "Teppiche zuerst"
+      },
+      "carpet_deep_clean": {
+        "name": "Teppich-Tiefenreinigung"
+      },
+      "station_light": {
+        "name": "Stationsbeleuchtung"
+      }
+    },
+    "time": {
+      "do_not_disturb_start": {
+        "name": "Nicht stören ab"
+      },
+      "do_not_disturb_end": {
+        "name": "Nicht stören bis"
+      }
+    },
+    "vacuum": {
+      "narwal": {
+        "state_attributes": {
+          "fan_speed": {
+            "state": {
+              "mute": "Leise",
+              "normal": "Normal",
+              "strong": "Stark",
+              "deep": "Tief",
+              "super": "Max"
+            }
+          }
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Keine Verbindung zum Roboter unter {host}: {error}"
+    },
+    "communication_error": {
+      "message": "Kommunikation mit dem Roboter fehlgeschlagen: {error}"
+    },
+    "command_failed": {
+      "message": "Der Roboter hat den Befehl abgelehnt: {result}"
+    },
+    "invalid_fan_speed": {
+      "message": "Unbekannte Saugstufe: {fan_speed}"
+    },
+    "entry_not_loaded": {
+      "message": "Der Roboter ist nicht eingerichtet oder nicht geladen."
+    },
+    "nothing_due": {
+      "message": "Kein Teil ist zur Wartung oder zum Austausch fällig."
+    },
+    "not_due": {
+      "message": "{item} ist nicht fällig, es gibt keine Erinnerung zum Löschen."
+    },
+    "no_map": {
+      "message": "Der Roboter hat noch keine Karte."
+    },
+    "zone_outside_map": {
+      "message": "Die Zone {zone} liegt außerhalb der Karte."
+    },
+    "zone_too_small": {
+      "message": "Die Zone {zone} ist zu klein; die Ecken brauchen unterschiedliche x- und y-Werte."
+    },
+    "unknown_rooms": {
+      "message": "Der Roboter hat keinen Raum mit der ID {rooms}."
+    },
+    "unknown_no_go_zones": {
+      "message": "Keine Sperrzone mit der ID {ids}."
+    }
+  },
+  "selector": {
+    "consumable": {
+      "options": {
+        "anti_winding_brush": "Anti-Verwicklungsbürste",
+        "clear_water_filter": "Frischwasserfilter",
+        "cliff_sensor": "Absturzsensoren",
+        "curing_agent": "Pflegemittel",
+        "detergent": "Reinigungsmittel",
+        "dirty_water": "Schmutzwassertank",
+        "dust_bag": "Staubbeutel",
+        "dust_box": "Staubbehälter",
+        "dust_container": "Staubsammler",
+        "dust_filter": "Staubfilter",
+        "heavy_detergent": "Intensiv-Reinigungsmittel",
+        "inner_dust_box": "Innerer Staubbehälter",
+        "mop": "Mopp",
+        "roller_brush": "Hauptbürste",
+        "side_brush": "Seitenbürste",
+        "side_distance_sensor": "Seitlicher Abstandssensor",
+        "silver_ions": "Silberionen-Modul",
+        "smart_module_filter": "Filter des Smart-Moduls",
+        "smart_module_sponge": "Schwamm des Smart-Moduls",
+        "station_bag": "Staubbeutel der Station",
+        "universal_wheel": "Schwenkrad",
+        "wash_ribs": "Waschrippen",
+        "water_tank_sponge": "Wassertank-Schwamm"
+      }
+    },
+    "dirt_type": {
+      "options": {
+        "unspecified": "Verschmutzung",
+        "liquid_many": "Flüssiger Fleck",
+        "solid_many": "Feste Verschmutzung",
+        "liquid_massive": "Großer flüssiger Fleck",
+        "solid_massive": "Starke feste Verschmutzung"
+      }
+    },
+    "furniture_type": {
+      "options": {
+        "unspecified": "Möbelstück",
+        "single_bed": "Einzelbett",
+        "double_bed": "Doppelbett",
+        "baby_bed": "Babybett",
+        "dinner_table_square": "Esstisch",
+        "dinner_table_round": "Runder Esstisch",
+        "tea_table_square": "Couchtisch",
+        "tea_table_round": "Runder Couchtisch",
+        "tv_cupboard": "TV-Möbel",
+        "bedside_table": "Nachttisch",
+        "locker": "Schrank",
+        "wardrobe": "Kleiderschrank",
+        "shoe_cupboard": "Schuhschrank",
+        "sofa_single": "Sessel",
+        "sofa_multi": "Sofa",
+        "sofa_l_shape": "Ecksofa",
+        "sofa_lazy": "Sitzsack",
+        "chair": "Stuhl",
+        "bar_chair": "Barhocker",
+        "cat_toilet": "Katzenklo",
+        "pet_eating_area": "Futterplatz",
+        "pet_house": "Haustierbett",
+        "washing_machine": "Waschmaschine",
+        "refrigerator": "Kühlschrank",
+        "vertical_aircon": "Klimagerät",
+        "vertical_fan": "Ventilator",
+        "potted_plant": "Topfpflanze",
+        "floor_mirror": "Standspiegel",
+        "toilet": "Toilette",
+        "piano": "Klavier",
+        "sofa_u_shape": "U-Sofa",
+        "desk": "Schreibtisch",
+        "grand_piano": "Flügel",
+        "washbasin": "Waschbecken",
+        "cooker_hood_stove": "Herd",
+        "wine_cabinet": "Weinschrank",
+        "cat_house": "Katzenhaus",
+        "dog_house": "Hundehütte",
+        "round_placeholder": "Rundes Objekt",
+        "weighing_scale": "Waage"
+      }
+    },
+    "no_go_type": {
+      "options": {
+        "no_entry": "Nicht befahren",
+        "no_vacuum": "Nicht saugen",
+        "no_mop": "Nicht wischen"
+      }
+    },
+    "obstacle_type": {
+      "options": {
+        "unspecified": "Gegenstand",
+        "cable": "Kabel",
+        "tissue": "Taschentuch",
+        "poop": "Haustierkot",
+        "liquid": "Flüssigkeit",
+        "shoes": "Schuhe",
+        "solid": "Fester Gegenstand",
+        "socks": "Socken",
+        "plastic_bag": "Plastiktüte",
+        "trash_bin": "Mülleimer",
+        "normal": "Hindernis",
+        "uncleanable": "Nicht reinigbar",
+        "textiles": "Textilien",
+        "not_exist": "Nicht mehr vorhanden",
+        "ground_texture": "Bodenmuster",
+        "pet": "Haustier",
+        "cliff": "Absturzkante",
+        "squatting_wc": "Hocktoilette",
+        "chair_u_legs": "Stuhl (U-Fuß)",
+        "chair_wheel": "Bürostuhl",
+        "floor_mirror": "Standspiegel",
+        "book": "Buch",
+        "stick": "Stab",
+        "merge_flexible": "Weicher Gegenstand",
+        "jewelry": "Schmuck",
+        "phone": "Handy",
+        "wallet": "Geldbörse",
+        "key": "Schlüssel",
+        "banknote": "Geldschein",
+        "remote_control": "Fernbedienung",
+        "glasses": "Brille",
+        "watch": "Uhr",
+        "card": "Karte",
+        "headphones": "Kopfhörer",
+        "baby_toy": "Babyspielzeug",
+        "plant": "Pflanze",
+        "fitness_equipment": "Fitnessgerät",
+        "pet_toy": "Haustierspielzeug",
+        "dangerous_goods": "Gefährlicher Gegenstand",
+        "decoration": "Dekoration",
+        "paper_box": "Karton",
+        "pet_cat": "Katze",
+        "pet_dog": "Hund",
+        "none": "Keine"
+      }
+    }
+  },
+  "services": {
+    "add_no_go_zones": {
+      "name": "Sperrzonen hinzufügen",
+      "description": "Fügt der Karte des Roboters Rechtecke hinzu, die er nicht befahren (oder nicht saugen bzw. wischen) soll.",
+      "fields": {
+        "zones": {
+          "name": "Zonen",
+          "description": "Liste von Rechtecken [x1, y1, x2, y2] in Millimetern, wie bei clean_zone."
+        },
+        "type": {
+          "name": "Art",
+          "description": "Was der Roboter dort nicht tun soll."
+        }
+      }
+    },
+    "clean_rooms": {
+      "name": "Räume reinigen",
+      "description": "Reinigt die Räume des Roboters nach ID in der angegebenen Reihenfolge, mit aktueller Saugstärke, Mopp-Feuchte und Reinigungsmodus. Das Kartenbild nennt die Raum-IDs.",
+      "fields": {
+        "rooms": {
+          "name": "Räume",
+          "description": "Raum-IDs in der Reihenfolge der Reinigung."
+        },
+        "repeats": {
+          "name": "Durchgänge",
+          "description": "Wie oft jeder Raum gereinigt wird (1 bis 3)."
+        }
+      }
+    },
+    "clean_zone": {
+      "name": "Zonen reinigen",
+      "description": "Reinigt Rechtecke auf der Karte in der angegebenen Reihenfolge, mit der aktuellen Saugstärke, Mopp-Feuchte und dem Reinigungsmodus.",
+      "fields": {
+        "zones": {
+          "name": "Zonen",
+          "description": "Liste von Rechtecken [x1, y1, x2, y2] in Millimetern, je zwei gegenüberliegende Ecken, im Koordinatensystem der calibration_points des Kartenbilds."
+        },
+        "repeats": {
+          "name": "Durchgänge",
+          "description": "Wie oft jede Zone gereinigt wird (1 bis 3)."
+        }
+      }
+    },
+    "delete_no_go_zones": {
+      "name": "Sperrzonen löschen",
+      "description": "Löscht Sperrzonen nach ID (siehe no_go_zones am Kartenbild). Ohne IDs werden alle Sperrzonen gelöscht.",
+      "fields": {
+        "ids": {
+          "name": "IDs",
+          "description": "IDs der zu löschenden Zonen; leer lassen für alle."
+        }
+      }
+    },
+    "reset_consumables": {
+      "name": "Verbrauchsteil-Erinnerungen zurücksetzen",
+      "description": "Teilt dem Roboter mit, dass Teile gereinigt oder ersetzt wurden, und löscht damit ihre Erinnerungen. Ohne Angabe von Teilen werden alle fälligen Erinnerungen gelöscht. Die Lebensdauer in der Narwal-App liegt in Narwals Cloud und ändert sich nicht.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Roboter",
+          "description": "Der Roboter, dessen Erinnerungen gelöscht werden."
+        },
+        "items": {
+          "name": "Teile",
+          "description": "Gereinigte oder ersetzte Teile. Leer lassen für alle fälligen Teile."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+# Lovelace card. Add /local/narwal/dashboard.js as a JavaScript module resource first.
+type: custom:narwal-dashboard
+vacuum: vacuum.narwal            # narwal_local vacuum
+matter: vacuum.freo_20           # the same robot added through Matter (Auto mode)
+image: image.vacuum_map          # narwal_mapa
+camera: camera.narwal_camera     # narwal_chmura + camera add-on
+schedule: schedule.vacuum_schedule   # optional schedule helper
+tts: tts.piper                   # optional, for "say through the robot"
+tts_language: en
