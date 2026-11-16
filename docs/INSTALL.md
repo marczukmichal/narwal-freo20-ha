@@ -20,8 +20,8 @@ From this repository, copy:
 | From | To |
 |---|---|
 | `custom_components/narwal_local` | `/config/custom_components/narwal_local` |
-| `custom_components/narwal_mapa` | `/config/custom_components/narwal_mapa` |
-| `custom_components/narwal_chmura` | `/config/custom_components/narwal_chmura` |
+| `custom_components/narwal_map` | `/config/custom_components/narwal_map` |
+| `custom_components/narwal_cloud` | `/config/custom_components/narwal_cloud` |
 | `www/narwal` | `/config/www/narwal` |
 
 Create the `custom_components` and `www` folders if they do not exist.
@@ -31,7 +31,7 @@ Create the `custom_components` and `www` folders if they do not exist.
 Add this line to `/config/configuration.yaml`:
 
 ```yaml
-narwal_mapa:
+narwal_map:
 ```
 
 ## 3. Restart

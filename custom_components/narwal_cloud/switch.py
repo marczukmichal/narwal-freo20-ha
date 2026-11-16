@@ -24,7 +24,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 async_add_entities([WyborPokoju(rid, nazwa) for rid, nazwa in pokoje])
                 return
 
-    entry.async_create_background_task(hass, czekaj(), "narwal_chmura pokoje")
+    entry.async_create_background_task(hass, czekaj(), "narwal_cloud pokoje")
 
 
 class WyborPokoju(SwitchEntity, RestoreEntity):
@@ -33,7 +33,7 @@ class WyborPokoju(SwitchEntity, RestoreEntity):
 
     def __init__(self, rid: int, nazwa: str) -> None:
         self.rid = rid
-        self._attr_unique_id = f"narwal_chmura_pokoj_{rid}"
+        self._attr_unique_id = f"narwal_cloud_pokoj_{rid}"
         self._attr_name = f"Narwal room clean include {nazwa}"
 
     @property

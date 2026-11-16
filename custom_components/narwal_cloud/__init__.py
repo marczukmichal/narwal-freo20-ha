@@ -1,6 +1,6 @@
 """Narwal cloud session for camera and obstacle photos.
 
-Service narwal_chmura.zapytanie sends one request with the stored session
+Service narwal_cloud.zapytanie sends one request with the stored session
 and returns the response with token-like fields removed (debug / discovery).
 """
 from __future__ import annotations
@@ -311,8 +311,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class PrzeszkodaView(HomeAssistantView):
     """Serve decrypted obstacle photos to logged-in users (signed paths work)."""
 
-    url = "/api/narwal_chmura/przeszkoda/{rekord}/{plik}"
-    name = "api:narwal_chmura:przeszkoda"
+    url = "/api/narwal_cloud/przeszkoda/{rekord}/{plik}"
+    name = "api:narwal_cloud:przeszkoda"
     requires_auth = True
 
     def __init__(self, base: Path) -> None:

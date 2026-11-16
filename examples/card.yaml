@@ -2,8 +2,8 @@
 type: custom:narwal-dashboard
 vacuum: vacuum.narwal            # narwal_local vacuum
 matter: vacuum.freo_20           # the same robot added through Matter (Auto mode)
-image: image.vacuum_map          # narwal_mapa
-camera: camera.narwal_camera     # narwal_chmura + camera add-on
+image: image.vacuum_map          # narwal_map
+camera: camera.narwal_camera     # narwal_cloud + camera add-on
 schedule: schedule.vacuum_schedule   # optional schedule helper
 tts: tts.piper                   # optional, for "say through the robot"
 tts_language: en

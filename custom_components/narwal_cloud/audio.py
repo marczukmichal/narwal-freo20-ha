@@ -6,7 +6,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 
 @websocket_api.websocket_command({
-    vol.Required('type'): 'narwal_chmura/audio',
+    vol.Required('type'): 'narwal_cloud/audio',
     vol.Required('action'): vol.In(['listen_start', 'listen_stop', 'poll', 'talk_start', 'talk_stop', 'talk_pcm']),
     vol.Required('session_id'): vol.All(str, vol.Length(min=1, max=64)),
     vol.Optional('talk_id'): vol.All(str, vol.Length(max=64)),

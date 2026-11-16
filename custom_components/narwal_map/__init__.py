@@ -1,7 +1,7 @@
 """App-style Narwal map as an image entity (SVG).
 
 Reads the map grid, rooms, furniture, zones and the live robot position from
-the `narwal_local` coordinator. Enable with `narwal_mapa:` in configuration.yaml.
+the `narwal_local` coordinator. Enable with `narwal_map:` in configuration.yaml.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import discovery
 from homeassistant.helpers.typing import ConfigType
 
-DOMAIN = "narwal_mapa"
+DOMAIN = "narwal_map"
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -35,7 +35,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             else:
                 await coordinator.async_edit_no_go_zones(delete=[call.data["usun"]])
             return
-        geo = hass.data.get("narwal_mapa_geo")
+        geo = hass.data.get("narwal_map_geo")
         if not geo or mi is None:
             raise HomeAssistantError("No current robot map")
         f = call.data.get("f")

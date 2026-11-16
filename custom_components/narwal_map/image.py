@@ -39,7 +39,7 @@ class NarwalMapaImage(ImageEntity):
 
     _attr_content_type = "image/svg+xml"
     _attr_name = "Vacuum map"
-    _attr_unique_id = "narwal_mapa_svg"
+    _attr_unique_id = "narwal_map_svg"
     _attr_icon = "mdi:floor-plan"
     _attr_should_poll = False
 
@@ -51,8 +51,8 @@ class NarwalMapaImage(ImageEntity):
         self._busy = False
         self._failed = False
         # last map on disk: after an HA restart there is a picture before the robot wakes
-        self._cache = Path(hass.config.path(".storage", "narwal_mapa.svg"))
-        self._geo_file = Path(hass.config.path(".storage", "narwal_mapa_geo.json"))
+        self._cache = Path(hass.config.path(".storage", "narwal_map.svg"))
+        self._geo_file = Path(hass.config.path(".storage", "narwal_map_geo.json"))
         self._geo: list | None = None
         self._pin_sig: tuple | None = None
 
@@ -211,7 +211,7 @@ class NarwalMapaImage(ImageEntity):
         aspect = next((p["_aspect"] for p in pins_out if "_aspect" in p), None)
         geo = next((p["_geo"] for p in pins_out if "_geo" in p), None)
         if geo:
-            self.hass.data["narwal_mapa_geo"] = geo
+            self.hass.data["narwal_map_geo"] = geo
         if geo and geo != self._geo:
             self._geo = geo
             await self.hass.async_add_executor_job(self._geo_file.write_text, json.dumps(geo))

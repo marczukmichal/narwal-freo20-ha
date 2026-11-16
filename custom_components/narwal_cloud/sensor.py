@@ -20,7 +20,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class PrzeszkodySensor(CoordinatorEntity, SensorEntity):
     _attr_has_entity_name = False
     _attr_name = "Narwal obstacles"
-    _attr_unique_id = "narwal_chmura_przeszkody"
+    _attr_unique_id = "narwal_cloud_przeszkody"
     _attr_icon = "mdi:image-search"
     _attr_native_unit_of_measurement = "photos"
 
@@ -40,7 +40,7 @@ class CzesciSensor(CoordinatorEntity, SensorEntity):
 
     _attr_has_entity_name = False
     _attr_name = "Narwal parts"
-    _attr_unique_id = "narwal_chmura_czesci"
+    _attr_unique_id = "narwal_cloud_czesci"
     _attr_icon = "mdi:wrench-clock"
 
     @property
@@ -66,7 +66,7 @@ class CzescSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator, kod: str) -> None:
         super().__init__(coordinator)
         self.kod = kod
-        self._attr_unique_id = f"narwal_chmura_czesc_{kod}"
+        self._attr_unique_id = f"narwal_cloud_czesc_{kod}"
         self._attr_name = f"Narwal part {coordinator.data[kod]['nazwa'].lower()}"
 
     @property
@@ -98,7 +98,7 @@ class HistoriaSensor(CoordinatorEntity, SensorEntity):
         self.klucz = klucz
         self._attr_name = nazwa
         self._attr_icon = ikona
-        self._attr_unique_id = f"narwal_chmura_historia_{klucz}"
+        self._attr_unique_id = f"narwal_cloud_historia_{klucz}"
         self._attr_native_unit_of_measurement = jednostka
 
     @property

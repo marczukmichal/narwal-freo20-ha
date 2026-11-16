@@ -55,6 +55,7 @@ def main(src: Path) -> None:
                 missing.append(f"{rel}: {old[:70]!r}")
         f.write_text(text, encoding="utf-8")
     missing += translate_ui()
+    rename_domains()
     ov = REPO / "tools" / "overrides"
     for f in ov.rglob("*"):
         if f.is_file():
@@ -64,6 +65,27 @@ def main(src: Path) -> None:
     if missing:
         sys.exit("Pairs that no longer match:\n  " + "\n  ".join(missing))
     print("ok")
+
+
+# The private setup uses Polish domain names; this repository uses English ones.
+DOMAINS = {"narwal_chmura": "narwal_cloud", "narwal_mapa": "narwal_map"}
+
+
+def rename_domains() -> None:
+    for old, new in DOMAINS.items():
+        a, b = REPO / "custom_components" / old, REPO / "custom_components" / new
+        if b.exists():
+            shutil.rmtree(b)
+        a.rename(b)
+    for top in ("custom_components", "addons", "www"):
+        for f in (REPO / top).rglob("*"):
+            if f.is_file() and f.suffix in {".py", ".json", ".yaml", ".js", ".md", ".txt"}:
+                text = f.read_text(encoding="utf-8")
+                new = text
+                for old, nd in DOMAINS.items():
+                    new = new.replace(old, nd)
+                if new != text:
+                    f.write_text(new, encoding="utf-8")
 
 
 RAW = re.compile(r"[^A-Za-z0-9]|[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]")

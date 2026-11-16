@@ -1,1 +1,0 @@
-DOMAIN = "narwal_chmura"

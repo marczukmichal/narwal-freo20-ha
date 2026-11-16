@@ -17,7 +17,7 @@ class UstawienieSprzatania(SelectEntity, RestoreEntity):
 
     def __init__(self, hass, klucz, nazwa, opcje, domyslna) -> None:
         self.klucz, self.opcje = klucz, opcje
-        self._attr_unique_id = f"narwal_chmura_ustawienie_{klucz}"
+        self._attr_unique_id = f"narwal_cloud_ustawienie_{klucz}"
         self._attr_name = nazwa
         self._attr_options = [lab for _, lab in opcje]
         stan(hass)["wartosci"].setdefault(klucz, domyslna)

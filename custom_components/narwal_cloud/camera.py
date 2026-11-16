@@ -19,7 +19,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class NarwalKamera(Camera):
     _attr_name = "Narwal camera"
-    _attr_unique_id = "narwal_chmura_kamera"
+    _attr_unique_id = "narwal_cloud_kamera"
     _attr_icon = "mdi:robot-vacuum"
     _attr_supported_features = CameraEntityFeature.STREAM
     _attr_should_poll = False

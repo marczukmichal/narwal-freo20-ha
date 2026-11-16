@@ -4,7 +4,7 @@ POST /session   -> explicit viewer start/heartbeat/stop
 GET /frame.jpg  -> latest JPEG (only with an active viewer lease)
 GET /stream     -> MJPEG (multipart/x-mixed-replace)
 GET /status     -> JSON
-Session params come from HA service narwal_chmura.start_wideo (via Supervisor).
+Session params come from HA service narwal_cloud.start_wideo (via Supervisor).
 Listens only on the internal add-on network (no ports mapped).
 """
 import base64
@@ -33,7 +33,7 @@ from agora.rtc.local_user_observer import IRTCLocalUserObserver
 from agora.rtc.video_frame_observer import IVideoFrameObserver
 
 OPTS = json.load(open("/data/options.json")) if os.path.exists("/data/options.json") else {}
-DEVICE_ID = OPTS.get("device_id", "")  # optional: empty = the robot picked by narwal_chmura
+DEVICE_ID = OPTS.get("device_id", "")  # optional: empty = the robot picked by narwal_cloud
 DEVICE = {"device_id": DEVICE_ID, "product_id": ""}
 viewers = ViewerSessions()  # explicit Start + renewable 35-second lease
 STALL_S = 15         # reconnect if no frames for this long while watched
@@ -55,7 +55,7 @@ audio = AudioBridge(viewers, logger=log)
 
 def get_session():
     req = urllib.request.Request(
-        "http://supervisor/core/api/services/narwal_chmura/start_wideo?return_response",
+        "http://supervisor/core/api/services/narwal_cloud/start_wideo?return_response",
         data=json.dumps({"device_id": DEVICE_ID} if DEVICE_ID else {}).encode(),
         headers={"Authorization": "Bearer " + os.environ["SUPERVISOR_TOKEN"],
                  "Content-Type": "application/json"})
@@ -160,7 +160,7 @@ def request_device_audio(channel):
             "body": {"deviceId": DEVICE["device_id"], "productId": DEVICE["product_id"], "type": 1, "channel": channel},
             "device_id": DEVICE["device_id"], "product_id": DEVICE["product_id"]}
     req = urllib.request.Request(
-        "http://supervisor/core/api/services/narwal_chmura/zapytanie?return_response",
+        "http://supervisor/core/api/services/narwal_cloud/zapytanie?return_response",
         data=json.dumps(body).encode(),
         headers={"Authorization": "Bearer " + os.environ["SUPERVISOR_TOKEN"],
                  "Content-Type": "application/json"})

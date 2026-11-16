@@ -11,7 +11,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class SprzatajWybrane(ButtonEntity):
-    _attr_unique_id = "narwal_chmura_sprzataj_wybrane"
+    _attr_unique_id = "narwal_cloud_sprzataj_wybrane"
     _attr_name = "Narwal room clean start"
     _attr_icon = "mdi:play-circle-outline"
 

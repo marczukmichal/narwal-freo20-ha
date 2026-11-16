@@ -5,7 +5,7 @@ export class NarwalCameraAudio {
   this.release=()=>this.stopTalk();this.shutdown=()=>this.stop();
   window.addEventListener('blur',this.release);window.addEventListener('pagehide',this.shutdown);
  }
- command(action,extra={},session=this.card.cameraSession){return this.card._hass.callWS({type:'narwal_chmura/audio',action,session_id:session,...extra});}
+ command(action,extra={},session=this.card.cameraSession){return this.card._hass.callWS({type:'narwal_cloud/audio',action,session_id:session,...extra});}
  mount(){
   const root=this.card.shadowRoot;this.listen=root.querySelector('[data-camera-listen]');this.talk=root.querySelector('[data-camera-talk]');this.note=root.querySelector('.audio-status');
   if(!this.listen||this.listen.dataset.bound)return;

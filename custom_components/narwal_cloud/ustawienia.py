@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 
 from . import sprzatanie
 
-DOMAIN = "narwal_chmura"
+DOMAIN = "narwal_cloud"
 
 # key, name, options (internal value, label), default
 USTAWIENIA = (

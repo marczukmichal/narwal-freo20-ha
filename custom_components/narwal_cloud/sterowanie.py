@@ -35,7 +35,7 @@ TRYBY = {"wylacz": 0, "joystick": 1, "cicho": 3, "normalnie": 4, "mocno": 5, "do
 WATCHDOG = 0.6
 MAX_LINEAR = 20  # the app's value at 100 % speed
 MAX_ANGULAR = 17
-GRID_S = 10  # narwal_mapa SVG units per cell
+GRID_S = 10  # narwal_map SVG units per cell
 
 
 def _w():
@@ -109,13 +109,13 @@ class Sterowanie:
             WATCHDOG, lambda: self.hass.async_create_task(self._zero()))
 
     async def jedz_do(self, fx: float, fy: float) -> dict:
-        """fx/fy: point on the narwal_mapa image (0..1), turned into map cells."""
+        """fx/fy: point on the narwal_map image (0..1), turned into map cells."""
         await self._wideo_aktywne()
         if not (0 <= fx <= 1 and 0 <= fy <= 1):
             raise HomeAssistantError("Point outside the map")
         try:
             geo = json.loads(await self.hass.async_add_executor_job(
-                Path(self.hass.config.path(".storage", "narwal_mapa_geo.json")).read_text))
+                Path(self.hass.config.path(".storage", "narwal_map_geo.json")).read_text))
             H, ox, oy, vx, vy, vw, vh = geo
         except (OSError, ValueError, TypeError) as err:
             raise HomeAssistantError("No map geometry") from err

@@ -22,8 +22,8 @@ the integrations behind it, and the camera add-on.
 | Path | What it is | Needs the cloud |
 |---|---|---|
 | `custom_components/narwal_local` | Local connection to the robot (state, settings, dock, map, rooms). A modified copy of [cvette/narwal-ha](https://github.com/cvette/narwal-ha), MIT. See [changes](docs/NARWAL_LOCAL_CHANGES.md). | No |
-| `custom_components/narwal_mapa` | App-style map as an image entity, plus a service to draw no-go zones and virtual walls. | No |
-| `custom_components/narwal_chmura` | "Narwal Cloud Companion": obstacle photos (decrypted locally), parts and wear with reset, cleaning history and totals, pet photos and pet sounds, room cleaning, camera session. | Yes |
+| `custom_components/narwal_map` | App-style map as an image entity, plus a service to draw no-go zones and virtual walls. | No |
+| `custom_components/narwal_cloud` | "Narwal Cloud Companion": obstacle photos (decrypted locally), parts and wear with reset, cleaning history and totals, pet photos and pet sounds, room cleaning, camera session. | Yes |
 | `addons/narwal_kamera` | Local Supervisor add-on that joins the robot's Agora video session and serves the camera, robot audio and push-to-talk to HA. | Yes |
 | `www/narwal` | The control window: a Lovelace card `custom:narwal-dashboard` (English UI). | Partly |
 | `examples` | Card configuration and an optional schedule automation. | |
@@ -35,8 +35,8 @@ the integrations behind it, and the camera add-on.
 
 - Home Assistant OS or Supervised (the camera add-on needs the Supervisor), amd64.
 - `narwal_local` (included) with the robot's local IP address.
-- `narwal_mapa` (included), for the map in the window.
-- `narwal_chmura` (included) with your Narwal account, for camera, photos, parts and history.
+- `narwal_map` (included), for the map in the window.
+- `narwal_cloud` (included) with your Narwal account, for camera, photos, parts and history.
 - `narwal_kamera` add-on (included), for the live camera. It installs
   `agora-python-server-sdk` 2.4.10, numpy, pillow and av when it is built.
 - The robot added to Home Assistant through **Matter** (built-in integration).
@@ -57,9 +57,9 @@ the integrations behind it, and the camera add-on.
 
 Quick start:
 
-1. Copy `custom_components/narwal_local`, `narwal_mapa` and `narwal_chmura` to
+1. Copy `custom_components/narwal_local`, `narwal_map` and `narwal_cloud` to
    `/config/custom_components/`, and `www/narwal` to `/config/www/narwal`.
-2. Add `narwal_mapa:` to `configuration.yaml` and restart Home Assistant.
+2. Add `narwal_map:` to `configuration.yaml` and restart Home Assistant.
 3. Add integration **Narwal Local** (robot IP), then **Narwal Cloud Companion**
    (Narwal email, password, region). Pair the robot with **Matter** too.
 4. Camera (HA OS only): copy `addons/narwal_kamera` to the local add-ons folder,
@@ -101,7 +101,7 @@ Only administrators can start the camera, reset parts, edit zones or drive the r
 - Entity ids are fixed in the window except the ones in the card configuration.
   If your entities are named differently, rename them in HA.
 - Service names, attribute names and some service options are still in Polish
-  (for example `narwal_chmura.zeruj_czesc`, `narwal_mapa.strefa`). The UI text
+  (for example `narwal_cloud.zeruj_czesc`, `narwal_map.strefa`). The UI text
   is English.
 
 ## Maintenance

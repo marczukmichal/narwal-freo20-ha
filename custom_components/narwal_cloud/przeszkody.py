@@ -149,7 +149,7 @@ class Przeszkody:
                     continue
             lista.append({"nazwa": "Zwierzak", "czas": datetime.fromtimestamp(ts, timezone.utc).isoformat(),
                           "pokoj": meta.get("room_id"), "mapa": meta.get("map_id"),
-                          "sciezka": f"/api/narwal_chmura/przeszkoda/{zadanie}/{ts}.jpg"})
+                          "sciezka": f"/api/narwal_cloud/przeszkoda/{zadanie}/{ts}.jpg"})
         lista.sort(key=lambda x: x["czas"], reverse=True)
         return lista
 
@@ -196,7 +196,7 @@ class Przeszkody:
                               "x": poz.get(str(im.get("id")), (None, None))[0],
                               "y": poz.get(str(im.get("id")), (None, None))[1],
                               "mapa": res.get("map_id") or rec.get("map_id"),
-                              "sciezka": f"/api/narwal_chmura/przeszkoda/{rid}/{im.get('id')}.jpg"})
+                              "sciezka": f"/api/narwal_cloud/przeszkoda/{rid}/{im.get('id')}.jpg"})
             lista.sort(key=lambda x: x["czas"] or "", reverse=True)
             return {
                 "lista": lista,

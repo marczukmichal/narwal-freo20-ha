@@ -19,6 +19,6 @@ The main changes, taken from the private setup's commit history:
   `narwal_local.delete_virtual_walls`, using the app's own virtual-wall map
   operation (map edit payload field 13).
 
-The window and `narwal_mapa` depend on these entities and services. They have
+The window and `narwal_map` depend on these entities and services. They have
 not been sent upstream; splitting them into pull requests for cvette/narwal-ha
 is possible if that is useful.

@@ -24,7 +24,7 @@ test('changing mode, power and rooms never starts cleaning',async()=>{
 test('manual start sends chosen mode, power and exact rooms to cloud service',async()=>{
  const {card,calls}=setup();card.draft.mode='vacuum_and_mop';card.draft.sequence=true;card.draft.suction='quiet';card.draft.water='wet';card.draft.passes='2';card.selected.add('3');
  await click(card,{action:'prepare-clean'});await click(card,{action:'confirm'});
- assert.deepEqual(calls,[['narwal_chmura','sprzataj_pokoje',{rooms:[3],mode:'vacuum_then_mop',suction:'quiet',water:'wet',mop_strength:'normal',passes:2,route:'standard'}]]);
+ assert.deepEqual(calls,[['narwal_cloud','sprzataj_pokoje',{rooms:[3],mode:'vacuum_then_mop',suction:'quiet',water:'wet',mop_strength:'normal',passes:2,route:'standard'}]]);
 });
 test('Auto always targets all home, uses Matter Auto then starts',async()=>{
  const {card,calls}=setup();card.selected.add('3');await click(card,{action:'prepare-clean'});
